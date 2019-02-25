@@ -13,18 +13,13 @@ package fiaoapi
 import (
 	"fmt"
 
-	models "github.com/christophertino/fiao_api/models"
+	"github.com/christophertino/fiao_api/models"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/vacoj/Mindbody-API-Golang/siteservice"
 	"github.com/vacoj/wsdl2go/soap"
 )
 
-var mindBody = models.MindBody{
-	SourceName: "",
-	SourcePass: "",
-	Site:       -99,
-}
-
+// ConfigJSON : Settings imported from conf.json
 type ConfigJSON struct {
 	BrivoClientID     string `json:"brivo_client_id"`
 	BrivoClientSecret string `json:"brivo_client_secret"`
@@ -32,21 +27,44 @@ type ConfigJSON struct {
 
 	MindbodySourceName string `json:"mindbody_source_name"`
 	MindbodySourcePass string `json:"mindbody_source_pass"`
-	MindbodySite       string `json:"mindbody_site"`
+	MindbodySite       int    `json:"mindbody_site"`
+}
+
+var (
+	// MindBody : Data model for MindBody
+	MindBody *models.MindBody
+	Brivo    *models.Brivo
+)
+
+func (cj *ConfigJSON) buildModels() (mb *models.MindBody, b *models.Brivo, err error) {
+	mb = &models.MindBody{
+		SourceName: cj.MindbodySourceName,
+		SourcePass: cj.MindbodySourcePass,
+		Site:       cj.MindbodySite,
+	}
+	b = &models.Brivo{
+		ClientID:     cj.BrivoClientID,
+		ClientSecret: cj.BrivoClientSecret,
+		APIKey:       cj.BrivoAPIKey,
+	}
+	return mb, b, nil
 }
 
 // Authenticate mindbody api
-func Authenticate() {
+func Authenticate(cj *ConfigJSON) {
+	var err error
+	MindBody, Brivo, err = cj.buildModels()
+
 	cli := soap.Client{
-		URL:       "https://api.mindbodyonline.com/0_5/SiteService.asmx",
+		URL:       "https://clients.mindbodyonline.com/api/0_5_1/SiteService.asmx",
 		Namespace: siteservice.Namespace,
 	}
 	conn := siteservice.NewSite_x0020_ServiceSoap(&cli)
 	sourceCreds := &siteservice.SourceCredentials{
-		SourceName: mindBody.SourceName,
-		Password:   mindBody.SourcePass,
+		SourceName: MindBody.SourceName,
+		Password:   MindBody.SourcePass,
 		SiteIDs: &siteservice.ArrayOfInt{
-			Int: []int{mindBody.Site},
+			Int: []int{MindBody.Site},
 		},
 	}
 

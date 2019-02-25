@@ -11,9 +11,28 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
+
 	fiaoapi "github.com/christophertino/fiao_api"
 )
 
 func main() {
-	fiaoapi.Authenticate()
+	settings, err := ioutil.ReadFile("conf/conf.json")
+	if err != nil {
+		log.Fatal("Failed reading from conf", err)
+	}
+
+	var conf fiaoapi.ConfigJSON
+
+	err = json.Unmarshal(settings, &conf)
+	if err != nil {
+		fmt.Println("Unmarshal error:", err)
+	}
+
+	fmt.Printf("%+v", conf)
+
+	fiaoapi.Authenticate(&conf)
 }

@@ -29,4 +29,6 @@ type Brivo struct {
 
 	// Scope specifies optional requested permissions.
 	Scopes []string
+
+	APIKey string
 }

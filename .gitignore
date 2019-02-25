@@ -1,6 +1,9 @@
 # Configuration
 conf/conf.json
 
+# Dependencies 
+vendor/
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
