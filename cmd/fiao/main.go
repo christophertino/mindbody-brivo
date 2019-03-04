@@ -15,8 +15,8 @@ import (
 	"io/ioutil"
 	"log"
 
-	fiaoapi "github.com/christophertino/fiao_api"
-	"github.com/christophertino/fiao_api/models"
+	fiao "github.com/christophertino/fiao-sync"
+	"github.com/christophertino/fiao-sync/models"
 )
 
 func main() {
@@ -34,5 +34,5 @@ func main() {
 
 	// fmt.Printf("%+v", config)
 
-	fiaoapi.Authenticate(&config)
+	fiao.Authenticate(&config)
 }

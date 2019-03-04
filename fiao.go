@@ -8,27 +8,30 @@
  * @license		MPL 2.0
  */
 
-package fiaoapi
+package fiao
 
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 
-	"github.com/christophertino/fiao_api/models"
+	"github.com/christophertino/fiao-sync/models"
 )
 
 var (
-	MindBody *models.MindBody
-	Brivo    *models.Brivo
+	mb    models.MindBody
+	brivo models.Brivo
 )
 
 // Authenticate mindbody api
 func Authenticate(cj *models.Config) {
 	mbToken := getMindBodyToken(cj)
-	models.GetClients(cj, mbToken)
+	mb.GetClients(cj, mbToken)
+
+	fmt.Printf("%+v", mb)
 }
 
 func getMindBodyToken(cj *models.Config) string {

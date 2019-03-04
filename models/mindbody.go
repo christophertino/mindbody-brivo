@@ -12,7 +12,6 @@ package models
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -26,7 +25,7 @@ type MindBody struct {
 		PageSize        int `json:"PageSize"`
 		TotalResults    int `json:"TotalResults"`
 	} `json:"PaginationResponse"`
-	Clients []user
+	Clients []user `json:"Clients"`
 }
 
 type user struct {
@@ -35,7 +34,8 @@ type user struct {
 	LastName  string `json:"LastName"`
 }
 
-func GetClients(cj *Config, token string) {
+// GetClients : Build MindBody data model with Client data
+func (mb *MindBody) GetClients(cj *Config, token string) {
 	var client http.Client
 
 	// Create HTTP request
@@ -50,8 +50,8 @@ func GetClients(cj *Config, token string) {
 
 	// Make request
 	res, err := client.Do(req)
-	if err != nil {
-		log.Fatalln("Error fetching MindBody clients", err)
+	if err != nil || res.StatusCode >= 400 {
+		log.Fatalln("Error fetching MindBody clients", err, res.StatusCode)
 	}
 	defer res.Body.Close()
 
@@ -61,19 +61,9 @@ func GetClients(cj *Config, token string) {
 		log.Fatalln("Error reading response", err)
 	}
 
-	// Build response json
-	var result map[string]interface{}
-	err = json.Unmarshal(data, &result)
+	// Build response into Model
+	err = json.Unmarshal(data, &mb)
 	if err != nil {
 		log.Fatalln("Error unmarshalling json", err)
 	}
-
-	// Look for response errors
-	if res.StatusCode >= 400 {
-		log.Fatalln("API returned an error", res.StatusCode, result["Error"].(map[string]interface{})["Message"])
-	}
-
-	fmt.Printf("%+v", result)
-
-	// Build MB Model and return
 }
