@@ -1,10 +1,10 @@
 {
+    "brivo_username": "",
+    "brivo_password": "",
     "brivo_client_id": "",
     "brivo_client_secret": "",
     "brivo_api_key": "",
     
-    "mindbody_source_name": "",
-    "mindbody_source_pass": "",
     "mindbody_api_key": "",
     "mindbody_username": "",
     "mindbody_password": "",
