@@ -41,7 +41,7 @@ func (mb *MindBody) GetClients(cj *Config, token string) {
 	// Create HTTP request
 	req, err := http.NewRequest("GET", "https://api.mindbodyonline.com/public/v6/client/clients", nil)
 	if err != nil {
-		log.Fatalln("Error creating http request", err)
+		log.Fatalln("Error creating HTTP request", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("SiteId", cj.MindbodySite)

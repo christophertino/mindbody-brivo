@@ -1,4 +1,4 @@
-# FIAO Brooklyn Membership Syncing Application
+# FIAO Brooklyn Membership Sync
 
 Sync membership data between MindBody and Brivo OnAir. Built for the Federation of Italian-American Organizations of Brooklyn. 
 
@@ -28,3 +28,8 @@ $ cp conf/conf.example.json conf/conf.json
 ```sh
 $ go run cmd/fiao/main.go
 ```
+
+## License
+[MPL-2.0](https://www.mozilla.org/en-US/MPL/2.0/) Copyright 2019 FIAO Brooklyn. All rights reserved.
+
+See [LICENSE](LICENSE)
