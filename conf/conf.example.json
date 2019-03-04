@@ -6,5 +6,7 @@
     "mindbody_source_name": "",
     "mindbody_source_pass": "",
     "mindbody_api_key": "",
-    "mindbody_site": -99
+    "mindbody_username": "",
+    "mindbody_password": "",
+    "mindbody_site": "-99"
 }

@@ -30,5 +30,3 @@ $ go run cmd/fiao_api/main.go
 ```
 
 ## Credits
-
-+ [Mindbody-API-Golang](https://github.com/vacovsky/Mindbody-API-Golang)

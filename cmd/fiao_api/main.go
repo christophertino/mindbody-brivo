@@ -12,11 +12,11 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 
 	fiaoapi "github.com/christophertino/fiao_api"
+	"github.com/christophertino/fiao_api/models"
 )
 
 func main() {
@@ -25,14 +25,14 @@ func main() {
 		log.Fatal("Failed reading from conf", err)
 	}
 
-	var conf fiaoapi.ConfigJSON
+	var config models.Config
 
-	err = json.Unmarshal(settings, &conf)
+	err = json.Unmarshal(settings, &config)
 	if err != nil {
-		fmt.Println("Unmarshal error:", err)
+		log.Fatal("Unmarshal error:", err)
 	}
 
-	fmt.Printf("%+v", conf)
+	// fmt.Printf("%+v", config)
 
-	fiaoapi.Authenticate(&conf)
+	fiaoapi.Authenticate(&config)
 }

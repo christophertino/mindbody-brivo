@@ -11,70 +11,72 @@
 package fiaoapi
 
 import (
-	"fmt"
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
+	"log"
+	"net/http"
 
 	"github.com/christophertino/fiao_api/models"
-	"github.com/davecgh/go-spew/spew"
-	"github.com/vacoj/Mindbody-API-Golang/siteservice"
-	"github.com/vacoj/wsdl2go/soap"
 )
 
-// ConfigJSON : Settings imported from conf.json
-type ConfigJSON struct {
-	BrivoClientID     string `json:"brivo_client_id"`
-	BrivoClientSecret string `json:"brivo_client_secret"`
-	BrivoAPIKey       string `json:"brivo_api_key"`
-
-	MindbodySourceName string `json:"mindbody_source_name"`
-	MindbodySourcePass string `json:"mindbody_source_pass"`
-	MindbodySite       int    `json:"mindbody_site"`
-}
-
 var (
-	// MindBody : Data model for MindBody
 	MindBody *models.MindBody
 	Brivo    *models.Brivo
 )
 
-func (cj *ConfigJSON) buildModels() (mb *models.MindBody, b *models.Brivo, err error) {
-	mb = &models.MindBody{
-		SourceName: cj.MindbodySourceName,
-		SourcePass: cj.MindbodySourcePass,
-		Site:       cj.MindbodySite,
-	}
-	b = &models.Brivo{
-		ClientID:     cj.BrivoClientID,
-		ClientSecret: cj.BrivoClientSecret,
-		APIKey:       cj.BrivoAPIKey,
-	}
-	return mb, b, nil
+// Authenticate mindbody api
+func Authenticate(cj *models.Config) {
+	mbToken := getMindBodyToken(cj)
+	models.GetClients(cj, mbToken)
 }
 
-// Authenticate mindbody api
-func Authenticate(cj *ConfigJSON) {
-	var err error
-	MindBody, Brivo, err = cj.buildModels()
+func getMindBodyToken(cj *models.Config) string {
+	var client http.Client
 
-	cli := soap.Client{
-		URL:       "https://clients.mindbodyonline.com/api/0_5_1/SiteService.asmx",
-		Namespace: siteservice.Namespace,
+	// Build request body JSON
+	body := map[string]string{
+		"Username": cj.MindbodyUsername,
+		"Password": cj.MindbodyPassword,
 	}
-	conn := siteservice.NewSite_x0020_ServiceSoap(&cli)
-	sourceCreds := &siteservice.SourceCredentials{
-		SourceName: MindBody.SourceName,
-		Password:   MindBody.SourcePass,
-		SiteIDs: &siteservice.ArrayOfInt{
-			Int: []int{MindBody.Site},
-		},
-	}
-
-	req := &siteservice.GetSitesRequest{
-		SourceCredentials: sourceCreds,
-	}
-
-	reply, err := conn.GetSites(&siteservice.GetSites{Request: req})
+	bytesMessage, err := json.Marshal(body)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln("Error building POST body json", err)
 	}
-	spew.Dump(reply.GetSitesResult.Sites.Site[0])
+
+	// Create HTTP request
+	req, err := http.NewRequest("POST", "https://api.mindbodyonline.com/public/v6/usertoken/issue", bytes.NewBuffer(bytesMessage))
+	if err != nil {
+		log.Fatalln("Error creating http request", err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("SiteId", cj.MindbodySite)
+	req.Header.Add("Api-Key", cj.MindbodyAPIKey)
+
+	// Make request
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatalln("Error fetching MindBody user token", err)
+	}
+	defer res.Body.Close()
+
+	// Handle response
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatalln("Error reading response", err)
+	}
+
+	// Build response json
+	var result map[string]interface{}
+	err = json.Unmarshal(data, &result)
+	if err != nil {
+		log.Fatalln("Error unmarshalling json", err)
+	}
+
+	// Look for response errors
+	if res.StatusCode >= 400 {
+		log.Fatalln("API returned an error", res.StatusCode, result["Error"].(map[string]interface{})["Message"])
+	}
+
+	return result["AccessToken"].(string) //cast interface{} to string
 }
