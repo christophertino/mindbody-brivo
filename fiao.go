@@ -12,7 +12,6 @@ package fiao
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -28,22 +27,23 @@ var (
 )
 
 // Authenticate mindbody api
-func Authenticate(cj *models.Config) {
-	// mbToken := getMindBodyToken(cj)
-	// mb.GetClients(cj, mbToken)
-	// fmt.Printf("%+v", mb)
+func Authenticate(config *models.Config) {
+	mbToken := getMindBodyToken(config)
+	brivoToken := getBrivoToken(config)
 
-	brivoToken := getBrivoToken(cj)
+	mb.GetClients(config, mbToken)
+
+	fmt.Printf("%+v", mb)
 	fmt.Print(brivoToken)
 }
 
-func getMindBodyToken(cj *models.Config) string {
+func getMindBodyToken(config *models.Config) string {
 	var client http.Client
 
 	// Build request body JSON
 	body := map[string]string{
-		"Username": cj.MindbodyUsername,
-		"Password": cj.MindbodyPassword,
+		"Username": config.MindbodyUsername,
+		"Password": config.MindbodyPassword,
 	}
 	bytesMessage, err := json.Marshal(body)
 	if err != nil {
@@ -56,8 +56,8 @@ func getMindBodyToken(cj *models.Config) string {
 		log.Fatalln("Error creating HTTP request", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("SiteId", cj.MindbodySite)
-	req.Header.Add("Api-Key", cj.MindbodyAPIKey)
+	req.Header.Add("SiteId", config.MindbodySite)
+	req.Header.Add("Api-Key", config.MindbodyAPIKey)
 
 	// Make request
 	res, err := client.Do(req)
@@ -90,18 +90,18 @@ func getMindBodyToken(cj *models.Config) string {
 /**
  * Retrieve a Brivo Access Token using password grant type
  */
-func getBrivoToken(cj *models.Config) string {
+func getBrivoToken(config *models.Config) string {
 	var client http.Client
 
 	// Create HTTP request
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://auth.brivo.com/oauth/token?grant_type=password&username=%s&password=%s", cj.BrivoUsername, cj.BrivoPassword), nil)
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://auth.brivo.com/oauth/token?grant_type=password&username=%s&password=%s", config.BrivoUsername, config.BrivoPassword), nil)
 	if err != nil {
 		log.Fatalln("Error creating HTTP request", err)
 	}
-	clientCredentials := base64.StdEncoding.EncodeToString([]byte(cj.BrivoClientID + ":" + cj.BrivoClientSecret))
+	config.BuildClientCredentials()
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", "Basic "+clientCredentials)
-	req.Header.Add("api-key", cj.BrivoAPIKey)
+	req.Header.Add("Authorization", "Basic "+config.BrivoClientCredentials)
+	req.Header.Add("api-key", config.BrivoAPIKey)
 
 	// Make request
 	res, err := client.Do(req)

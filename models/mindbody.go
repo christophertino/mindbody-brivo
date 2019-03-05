@@ -35,7 +35,7 @@ type user struct {
 }
 
 // GetClients : Build MindBody data model with Client data
-func (mb *MindBody) GetClients(cj *Config, token string) {
+func (mb *MindBody) GetClients(config *Config, token string) {
 	var client http.Client
 
 	// Create HTTP request
@@ -44,8 +44,8 @@ func (mb *MindBody) GetClients(cj *Config, token string) {
 		log.Fatalln("Error creating HTTP request", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("SiteId", cj.MindbodySite)
-	req.Header.Add("Api-Key", cj.MindbodyAPIKey)
+	req.Header.Add("SiteId", config.MindbodySite)
+	req.Header.Add("Api-Key", config.MindbodyAPIKey)
 	req.Header.Add("Authorization", token)
 
 	// Make request
