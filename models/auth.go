@@ -54,7 +54,7 @@ type mbError struct {
 /**
  * Retrieve a MindBody Access Token
  */
-func (token *mbToken) GetMindBodyToken(config *Config, ch chan string) {
+func (token *mbToken) GetMindBodyToken(config *Config) error {
 	var client http.Client
 
 	// Build request body JSON
@@ -64,13 +64,15 @@ func (token *mbToken) GetMindBodyToken(config *Config, ch chan string) {
 	}
 	bytesMessage, err := json.Marshal(body)
 	if err != nil {
-		log.Fatalln("Error building POST body json", err)
+		log.Println("Error building POST body json", err)
+		return err
 	}
 
 	// Create HTTP request
 	req, err := http.NewRequest("POST", "https://api.mindbodyonline.com/public/v6/usertoken/issue", bytes.NewBuffer(bytesMessage))
 	if err != nil {
-		log.Fatalln("Error creating HTTP request", err)
+		log.Println("Error creating HTTP request", err)
+		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("SiteId", config.MindbodySite)
@@ -78,24 +80,36 @@ func (token *mbToken) GetMindBodyToken(config *Config, ch chan string) {
 
 	// Make request
 	res, err := client.Do(req)
-	if err != nil || res.StatusCode >= 400 {
-		log.Fatalln("Error fetching MindBody user token", err, res.StatusCode)
+	if err != nil {
+		return err
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		log.Println("Error fetching MindBody user token", err, res.StatusCode)
+		bodyBytes, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
+		bodyString := string(bodyBytes)
+		return fmt.Errorf("Error fetching MindBody user token with status code: %d, and body: %s", res.StatusCode, bodyString)
+	}
 
 	// Handle response
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatalln("Error reading response", err)
+		log.Println("Error reading response", err)
+		return err
 	}
 
 	// Build response into Model
 	err = json.Unmarshal(data, &token)
 	if err != nil {
-		log.Fatalln("Error unmarshalling json", err)
+		log.Println("Error unmarshalling json", err)
+		return err
 	}
 
-	ch <- "Successfully fetched MindBody Token"
+	return nil
 }
 
 /**
