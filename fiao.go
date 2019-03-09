@@ -12,6 +12,7 @@ package fiao
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/christophertino/fiao-sync/models"
 )
@@ -24,14 +25,26 @@ var (
 
 // Authenticate mindbody api
 func Authenticate(config *models.Config) {
-	mbCh := make(chan string)
-	brivoCh := make(chan string)
+	doneCh := make(chan bool)
+	errCh := make(chan error)
 
-	go auth.MindBodyToken.GetMindBodyToken(config, mbCh)
-	go auth.BrivoToken.GetBrivoToken(config, brivoCh)
+	go func() {
+		if err := auth.MindBodyToken.GetMindBodyToken(config); err != nil {
+			errCh <- err
+		} else {
+			<-doneCh
+		}
+	}()
+	// go auth.BrivoToken.GetBrivoToken(config, brivoCh)
 
-	fmt.Println(<-mbCh)
-	fmt.Println(<-brivoCh)
+	for i := 0; i < 1; i++ {
+		select {
+		case err := <-errCh:
+			log.Fatalln("FAILED:", err)
+		case <-doneCh:
+			fmt.Println("done!")
+		}
+	}
 
 	fmt.Printf("%+v", auth)
 
