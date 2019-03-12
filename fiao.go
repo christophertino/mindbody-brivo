@@ -32,17 +32,23 @@ func Authenticate(config *models.Config) {
 		if err := auth.MindBodyToken.GetMindBodyToken(config); err != nil {
 			errCh <- err
 		} else {
-			<-doneCh
+			doneCh <- true
 		}
 	}()
-	// go auth.BrivoToken.GetBrivoToken(config, brivoCh)
+	go func() {
+		if err := auth.BrivoToken.GetBrivoToken(config); err != nil {
+			errCh <- err
+		} else {
+			doneCh <- true
+		}
+	}()
 
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 2; i++ {
 		select {
 		case err := <-errCh:
-			log.Fatalln("FAILED:", err)
+			log.Fatalln("Token fetch failed:", err)
 		case <-doneCh:
-			fmt.Println("done!")
+			log.Println("Token fetch success!")
 		}
 	}
 
