@@ -115,13 +115,14 @@ func (token *mbToken) GetMindBodyToken(config *Config) error {
 /**
  * Retrieve a Brivo Access Token using password grant type
  */
-func (token *brivoToken) GetBrivoToken(config *Config, ch chan string) {
+func (token *brivoToken) GetBrivoToken(config *Config) error {
 	var client http.Client
 
 	// Create HTTP request
 	req, err := http.NewRequest("POST", fmt.Sprintf("https://auth.brivo.com/oauth/token?grant_type=password&username=%s&password=%s", config.BrivoUsername, config.BrivoPassword), nil)
 	if err != nil {
-		log.Fatalln("Error creating HTTP request", err)
+		log.Println("Error creating HTTP request", err)
+		return err
 	}
 	config.BuildClientCredentials()
 	req.Header.Add("Content-Type", "application/json")
@@ -130,22 +131,34 @@ func (token *brivoToken) GetBrivoToken(config *Config, ch chan string) {
 
 	// Make request
 	res, err := client.Do(req)
-	if err != nil || res.StatusCode >= 400 {
-		log.Fatalln("Error fetching Brivo access token", err, res.StatusCode)
+	if err != nil {
+		return err
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		log.Println("Error fetching Brivo access token", err, res.StatusCode)
+		bodyBytes, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
+		bodyString := string(bodyBytes)
+		return fmt.Errorf("Error fetching Brivo user token with status code: %d, and body: %s", res.StatusCode, bodyString)
+	}
 
 	// Handle response
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatalln("Error reading response", err)
+		log.Println("Error reading response", err)
+		return err
 	}
 
 	// Build response into Model
 	err = json.Unmarshal(data, &token)
 	if err != nil {
-		log.Fatalln("Error unmarshalling json", err)
+		log.Println("Error unmarshalling json", err)
+		return err
 	}
 
-	ch <- "Successfully fetched Brivo Token"
+	return nil
 }
