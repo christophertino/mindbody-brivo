@@ -22,14 +22,14 @@ import (
 func main() {
 	settings, err := ioutil.ReadFile("conf/conf.json")
 	if err != nil {
-		log.Fatal("Failed reading from conf", err)
+		log.Fatal("main: Failed reading from conf", err)
 	}
 
 	var config models.Config
 
 	err = json.Unmarshal(settings, &config)
 	if err != nil {
-		log.Fatal("Unmarshal error:", err)
+		log.Fatal("main: Unmarshal error:", err)
 	}
 
 	// fmt.Printf("%+v", config)

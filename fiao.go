@@ -11,7 +11,6 @@
 package fiao
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/christophertino/fiao-sync/models"
@@ -23,7 +22,7 @@ var (
 	brivo models.Brivo
 )
 
-// Authenticate mindbody api
+// Authenticate : Fetch access tokens for MindBody and Brivo
 func Authenticate(config *models.Config) {
 	doneCh := make(chan bool)
 	errCh := make(chan error)
@@ -46,22 +45,31 @@ func Authenticate(config *models.Config) {
 	for i := 0; i < 2; i++ {
 		select {
 		case err := <-errCh:
-			log.Fatalln("Token fetch failed:", err)
+			log.Fatalln("fiao.Authenticate: Token fetch failed:", err)
 		case <-doneCh:
-			log.Println("Token fetch success!")
+			log.Println("fiao.Authenticate: Token fetch success!")
 		}
 	}
 
-	fmt.Printf("%+v", auth)
+	// fmt.Printf("%+v", auth)
 
+	syncUsers(config)
+}
+
+func syncUsers(config *models.Config) {
+	// TODO: Replace with MindBody client webhook
+	// Get all MindBody clients
 	mb.GetClients(config, auth.MindBodyToken.AccessToken)
-	brivo.ListUsers(config, auth.BrivoToken.AccessToken)
+	// Get existing Brivo clients
+	err := brivo.ListUsers(config, auth.BrivoToken.AccessToken)
+	if err != nil {
+		log.Fatalln("fiao.syncUsers: Failed fetching Brivo users", err)
+	}
 
-	fmt.Printf("%+v", brivo)
+	// Map existing user data from MindBody to Brivo
+	brivo.BuildBrivoUsers(&mb)
 
-	// @TODO:
-	// + Map existing user data from MindBody to Brivo
-	// + Track matching user IDs using brivo.Data[i].CustomFields
-	// + POST new users to Brivo from MindBody
-	// + Map user groups
+	// POST new users to Brivo
+
+	// Map user groups
 }

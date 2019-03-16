@@ -25,13 +25,22 @@ type MindBody struct {
 		PageSize        int `json:"PageSize"`
 		TotalResults    int `json:"TotalResults"`
 	} `json:"PaginationResponse"`
-	Clients []user `json:"Clients"`
+	Clients []mbUser `json:"Clients"`
 }
 
-type user struct {
-	FirstName string `json:"FirstName"`
-	ID        string `json:"Id"`
-	LastName  string `json:"LastName"`
+type mbUser struct {
+	ID          string `json:"Id"`       // Client’s barcode ID used for client-related API calls
+	UniqueID    int64  `json:"UniqueId"` // Client’s unique system-generated ID
+	FirstName   string `json:"FirstName"`
+	MiddleName  string `json:"MiddleName"`
+	LastName    string `json:"LastName"`
+	Email       string `json:"Email"`
+	MobilePhone string `json:"MobilePhone"`
+	HomePhone   string `json:"HomePhone"`
+	WorkPhone   string `json:"WorkPhone"`
+	Active      bool   `json:"Active"`
+	Status      string `json:"Status"` // Declined,Non-Member,Active,Expired,Suspended,Terminated
+	Action      string `json:"Action"` // None,Added,Updated,Failed,Removed
 }
 
 // GetClients : Build MindBody data model with Client data
@@ -41,7 +50,7 @@ func (mb *MindBody) GetClients(config *Config, token string) {
 	// Create HTTP request
 	req, err := http.NewRequest("GET", "https://api.mindbodyonline.com/public/v6/client/clients", nil)
 	if err != nil {
-		log.Fatalln("Error creating HTTP request", err)
+		log.Fatalln("mindbody.GetClients: Error creating HTTP request", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("SiteId", config.MindbodySite)
@@ -51,19 +60,19 @@ func (mb *MindBody) GetClients(config *Config, token string) {
 	// Make request
 	res, err := client.Do(req)
 	if err != nil || res.StatusCode >= 400 {
-		log.Fatalln("Error fetching MindBody clients", err, res.StatusCode)
+		log.Fatalln("mindbody.GetClients: Error fetching MindBody clients", err, res.StatusCode)
 	}
 	defer res.Body.Close()
 
 	// Handle response
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatalln("Error reading response", err)
+		log.Fatalln("mindbody.GetClients: Error reading response", err)
 	}
 
 	// Build response into Model
 	err = json.Unmarshal(data, &mb)
 	if err != nil {
-		log.Fatalln("Error unmarshalling json", err)
+		log.Fatalln("mindbody.GetClients: Error unmarshalling json", err)
 	}
 }
