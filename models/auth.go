@@ -64,14 +64,14 @@ func (token *mbToken) GetMindBodyToken(config *Config) error {
 	}
 	bytesMessage, err := json.Marshal(body)
 	if err != nil {
-		log.Println("Error building POST body json", err)
+		log.Println("auth.GetMindBodyToken: Error building POST body json", err)
 		return err
 	}
 
 	// Create HTTP request
 	req, err := http.NewRequest("POST", "https://api.mindbodyonline.com/public/v6/usertoken/issue", bytes.NewBuffer(bytesMessage))
 	if err != nil {
-		log.Println("Error creating HTTP request", err)
+		log.Println("auth.GetMindBodyToken: Error creating HTTP request", err)
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
@@ -86,26 +86,26 @@ func (token *mbToken) GetMindBodyToken(config *Config) error {
 	defer res.Body.Close()
 
 	if res.StatusCode >= 400 {
-		log.Println("Error fetching MindBody user token", err, res.StatusCode)
+		log.Println("auth.GetMindBodyToken: Error fetching MindBody user token", err, res.StatusCode)
 		bodyBytes, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			return err
 		}
 		bodyString := string(bodyBytes)
-		return fmt.Errorf("Error fetching MindBody user token with status code: %d, and body: %s", res.StatusCode, bodyString)
+		return fmt.Errorf("auth.GetMindBodyToken: Error fetching MindBody user token with status code: %d, and body: %s", res.StatusCode, bodyString)
 	}
 
 	// Handle response
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Println("Error reading response", err)
+		log.Println("auth.GetMindBodyToken: Error reading response", err)
 		return err
 	}
 
 	// Build response into Model
 	err = json.Unmarshal(data, &token)
 	if err != nil {
-		log.Println("Error unmarshalling json", err)
+		log.Println("auth.GetMindBodyToken: Error unmarshalling json", err)
 		return err
 	}
 
@@ -121,7 +121,7 @@ func (token *brivoToken) GetBrivoToken(config *Config) error {
 	// Create HTTP request
 	req, err := http.NewRequest("POST", fmt.Sprintf("https://auth.brivo.com/oauth/token?grant_type=password&username=%s&password=%s", config.BrivoUsername, config.BrivoPassword), nil)
 	if err != nil {
-		log.Println("Error creating HTTP request", err)
+		log.Println("auth.GetBrivoToken: Error creating HTTP request", err)
 		return err
 	}
 	config.BuildClientCredentials()
@@ -137,26 +137,26 @@ func (token *brivoToken) GetBrivoToken(config *Config) error {
 	defer res.Body.Close()
 
 	if res.StatusCode >= 400 {
-		log.Println("Error fetching Brivo access token", err, res.StatusCode)
+		log.Println("auth.GetBrivoToken: Error fetching Brivo access token", err, res.StatusCode)
 		bodyBytes, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			return err
 		}
 		bodyString := string(bodyBytes)
-		return fmt.Errorf("Error fetching Brivo user token with status code: %d, and body: %s", res.StatusCode, bodyString)
+		return fmt.Errorf("auth.GetBrivoToken: Error fetching Brivo user token with status code: %d, and body: %s", res.StatusCode, bodyString)
 	}
 
 	// Handle response
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Println("Error reading response", err)
+		log.Println("auth.GetBrivoToken: Error reading response", err)
 		return err
 	}
 
 	// Build response into Model
 	err = json.Unmarshal(data, &token)
 	if err != nil {
-		log.Println("Error unmarshalling json", err)
+		log.Println("auth.GetBrivoToken: Error unmarshalling json", err)
 		return err
 	}
 
