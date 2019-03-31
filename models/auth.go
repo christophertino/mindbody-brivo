@@ -39,18 +39,6 @@ type mbToken struct {
 	AccessToken string `json:"AccessToken"`
 }
 
-type brivoError struct {
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description"`
-}
-
-type mbError struct {
-	Error struct {
-		Message string `json:"Message"`
-		Code    string `json:"Code"`
-	} `json:"Error"`
-}
-
 /**
  * Retrieve a MindBody Access Token
  */
@@ -86,7 +74,6 @@ func (token *mbToken) GetMindBodyToken(config *Config) error {
 	defer res.Body.Close()
 
 	if res.StatusCode >= 400 {
-		log.Println("auth.GetMindBodyToken: Error fetching MindBody user token", err, res.StatusCode)
 		bodyBytes, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			return err
@@ -137,7 +124,6 @@ func (token *brivoToken) GetBrivoToken(config *Config) error {
 	defer res.Body.Close()
 
 	if res.StatusCode >= 400 {
-		log.Println("auth.GetBrivoToken: Error fetching Brivo access token", err, res.StatusCode)
 		bodyBytes, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			return err
