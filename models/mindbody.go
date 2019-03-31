@@ -12,6 +12,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -43,14 +44,22 @@ type mbUser struct {
 	Action      string `json:"Action"` // None,Added,Updated,Failed,Removed
 }
 
+type mbError struct {
+	Error struct {
+		Message string `json:"Message"`
+		Code    string `json:"Code"`
+	} `json:"Error"`
+}
+
 // GetClients : Build MindBody data model with Client data
-func (mb *MindBody) GetClients(config *Config, token string) {
+func (mb *MindBody) GetClients(config *Config, token string) error {
 	var client http.Client
 
 	// Create HTTP request
 	req, err := http.NewRequest("GET", "https://api.mindbodyonline.com/public/v6/client/clients", nil)
 	if err != nil {
-		log.Fatalln("mindbody.GetClients: Error creating HTTP request", err)
+		log.Println("mindbody.GetClients: Error creating HTTP request", err)
+		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("SiteId", config.MindbodySite)
@@ -59,20 +68,33 @@ func (mb *MindBody) GetClients(config *Config, token string) {
 
 	// Make request
 	res, err := client.Do(req)
-	if err != nil || res.StatusCode >= 400 {
-		log.Fatalln("mindbody.GetClients: Error fetching MindBody clients", err, res.StatusCode)
+	if err != nil {
+		return err
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		bodyBytes, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
+		bodyString := string(bodyBytes)
+		return fmt.Errorf("mindbody.GetClients: Error fetching MB clients with status code: %d, and body: %s", res.StatusCode, bodyString)
+	}
 
 	// Handle response
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatalln("mindbody.GetClients: Error reading response", err)
+		log.Println("mindbody.GetClients: Error reading response", err)
+		return err
 	}
 
 	// Build response into Model
 	err = json.Unmarshal(data, &mb)
 	if err != nil {
-		log.Fatalln("mindbody.GetClients: Error unmarshalling json", err)
+		log.Println("mindbody.GetClients: Error unmarshalling json", err)
+		return err
 	}
+
+	return nil
 }

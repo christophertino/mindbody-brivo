@@ -1,6 +1,12 @@
 # FIAO Brooklyn Membership Sync
 
-Sync membership data between MindBody and Brivo OnAir. Built for the Federation of Italian-American Organizations of Brooklyn. 
+Sync membership data between MindBody and Brivo OnAir. This application makes the following assumptions:
+
++ Master client list is stored in MindBody and mirrored to Brivo
++ Mindbody users have been assigned a wristband with a generated barcode ID
++ Brivo credentials are cleard when the user is deactivated in MindBody
+
+Built for the Federation of Italian-American Organizations of Brooklyn. 
 
 ## Generating API Keys
 
@@ -26,7 +32,8 @@ $ cp conf/conf.example.json conf/conf.json
 ```
 
 ```sh
-$ go run cmd/fiao/main.go
+# Run the application. Use optional argument 'provision' for first-run
+$ go run cmd/fiao/main.go [provision]
 ```
 
 ## License

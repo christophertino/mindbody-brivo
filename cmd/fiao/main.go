@@ -14,8 +14,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"os"
 
-	fiao "github.com/christophertino/fiao-sync"
+	"github.com/christophertino/fiao-sync"
 	"github.com/christophertino/fiao-sync/models"
 )
 
@@ -33,6 +34,11 @@ func main() {
 	}
 
 	// fmt.Printf("%+v", config)
+
+	// Check for command-line arguments
+	if len(os.Args) > 1 {
+		config.ProgramArgs = os.Args[1]
+	}
 
 	fiao.Authenticate(&config)
 }
