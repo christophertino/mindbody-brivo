@@ -65,8 +65,7 @@ func syncUsers(config *models.Config, auth *models.Auth) {
 	// Get all MindBody clients
 	mb.GetClients(config, auth.MindBodyToken.AccessToken)
 	// Get existing Brivo clients
-	err := brivo.ListUsers(config, auth.BrivoToken.AccessToken)
-	if err != nil {
+	if err := brivo.ListUsers(config, auth.BrivoToken.AccessToken); err != nil {
 		log.Fatalln("fiao.syncUsers: Failed fetching Brivo users \n", err)
 	}
 

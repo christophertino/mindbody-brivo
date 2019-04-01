@@ -12,11 +12,10 @@ package models
 
 import (
 	"encoding/hex"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+
+	async "github.com/christophertino/fiao-sync/utils"
 )
 
 // Brivo client data
@@ -54,16 +53,8 @@ type phoneNumber struct {
 	NumberType string `json:"type"`
 }
 
-// BrivoError : Standard Brivo error struct
-type BrivoError struct {
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description"`
-}
-
 // ListUsers : Build Brivo data model with user data
 func (brivo *Brivo) ListUsers(config *Config, token string) error {
-	var client http.Client
-
 	// Create HTTP request
 	req, err := http.NewRequest("GET", "https://api.brivo.com/v1/api/users", nil)
 	if err != nil {
@@ -74,34 +65,7 @@ func (brivo *Brivo) ListUsers(config *Config, token string) error {
 	req.Header.Add("Authorization", "Bearer "+token)
 	req.Header.Add("api-key", config.BrivoAPIKey)
 
-	// Make request
-	res, err := client.Do(req)
-	if err != nil {
-		log.Println("brivo.ListUsers: Error making request", err)
-		return err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode >= 400 {
-		bodyBytes, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return err
-		}
-		bodyString := string(bodyBytes)
-		return fmt.Errorf("brivo.ListUsers: Error fetching Brivo users with status code: %d, and body: %s", res.StatusCode, bodyString)
-	}
-
-	// Handle response
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		log.Println("brivo.ListUsers: Error reading response", err)
-		return err
-	}
-
-	// Build response into Model
-	err = json.Unmarshal(data, &brivo)
-	if err != nil {
-		log.Println("brivo.ListUsers: Error unmarshalling json", err)
+	if _, err = async.DoRequest(req, brivo); err != nil {
 		return err
 	}
 
@@ -111,10 +75,11 @@ func (brivo *Brivo) ListUsers(config *Config, token string) error {
 // BuildBrivoUsers : Convert MB users to Brivo users
 func (brivo *Brivo) BuildBrivoUsers(mb *MindBody, config *Config, auth *Auth) {
 	// var brivoUsers = brivo.Data
-	var mbUsers []brivoUser
+	// var mbUsers []brivoUser
 
 	// Map MindBody fields to Brivo
-	for i := 0; i < len(mb.Clients); i++ {
+	// for i := 0; i < len(mb.Clients); i++ {
+	for i := 0; i < 1; i++ {
 		var (
 			user      brivoUser
 			userEmail email
@@ -146,8 +111,9 @@ func (brivo *Brivo) BuildBrivoUsers(mb *MindBody, config *Config, auth *Auth) {
 			user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
 		}
 
-		mbUsers = append(mbUsers, user)
+		// mbUsers = append(mbUsers, user)
 
+		// Create new Brivo credential for this user
 		cred := Credential{
 			CredentialFormat: CredentialFormat{
 				ID: 110, // Unknown Format
@@ -161,14 +127,11 @@ func (brivo *Brivo) BuildBrivoUsers(mb *MindBody, config *Config, auth *Auth) {
 			log.Fatalln("brivo.BuildBrivoUsers: Error creating credential \n", err)
 		}
 
-		fmt.Println(id)
-
+		createUser(&user, id)
 	}
+}
 
-	// If user doesn't exist
-
-	// create new credential
-
+func createUser(user *brivoUser, credentialID string) {
 	// create new Brivo user
 
 	// assign credential to user

@@ -18,10 +18,10 @@ package models
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+
+	async "github.com/christophertino/fiao-sync/utils"
 )
 
 // Credential : Brivo access credential
@@ -36,22 +36,9 @@ type CredentialFormat struct {
 	ID int `json:"id"`
 }
 
-type credentialError struct {
-	Message string `json:"message"`
-	Code    int    `json:"code"`
-}
-
-/**
- * Create new Brivo access credential
- * @param	config
- * @param	auth
- * @return	credentialID, error
- */
+// Create new Brivo access credential
 func (cred *Credential) createCredential(config *Config, auth *Auth) (string, error) {
-	// var client http.Client
-	var PTransport = &http.Transport{Proxy: http.ProxyFromEnvironment}
-	client := http.Client{Transport: PTransport}
-
+	// Build request body JSON
 	bytesMessage, err := json.Marshal(cred)
 	if err != nil {
 		log.Println("credential.createCredential: Error building POST body json", err)
@@ -68,37 +55,12 @@ func (cred *Credential) createCredential(config *Config, auth *Auth) (string, er
 	req.Header.Add("Authorization", "Bearer "+auth.BrivoToken.AccessToken)
 	req.Header.Add("api-key", config.BrivoAPIKey)
 
-	// Make request
-	res, err := client.Do(req)
+	var r map[string]interface{}
+	resp, err := async.DoRequest(req, &r)
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
-
-	// Handle response
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		log.Println("credential.createCredential: Error reading response", err)
-		return "", err
-	}
-
-	// Check for error response
-	if res.StatusCode >= 400 {
-		var ce credentialError
-		_ = json.Unmarshal(data, &ce)
-		return "", fmt.Errorf("credential.createCredential: Error creating credential \n %+v", ce)
-	}
-
-	// Build response into Model
-	var output map[string]interface{}
-	err = json.Unmarshal(data, &output)
-	if err != nil {
-		log.Println("credential.createCredential: Error unmarshalling json", err)
-		return "", err
-	}
-
-	fmt.Printf("%+v", output)
 
 	// Return the new credential ID
-	return output["id"].(string), nil
+	return resp.(map[string]interface{})["id"].(string), nil
 }
