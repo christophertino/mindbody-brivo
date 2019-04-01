@@ -37,7 +37,7 @@ type CredentialFormat struct {
 }
 
 // Create new Brivo access credential
-func (cred *Credential) createCredential(config *Config, auth *Auth) (int32, error) {
+func (cred *Credential) createCredential(config *Config, auth *Auth) (float64, error) {
 	// Build request body JSON
 	bytesMessage, err := json.Marshal(cred)
 	if err != nil {
@@ -56,11 +56,11 @@ func (cred *Credential) createCredential(config *Config, auth *Auth) (int32, err
 	req.Header.Add("api-key", config.BrivoAPIKey)
 
 	var r map[string]interface{}
-	resp, err := async.DoRequest(req, &r)
+	resp, err := async.DoRequest(req, r)
 	if err != nil {
 		return 0, err
 	}
 
 	// Return the new credential ID
-	return resp.(map[string]interface{})["id"].(int32), nil
+	return resp.(map[string]interface{})["id"].(float64), nil
 }
