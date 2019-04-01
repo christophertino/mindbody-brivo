@@ -14,9 +14,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+
+	async "github.com/christophertino/fiao-sync/utils"
 )
 
 // Auth : Authentication tokens
@@ -39,12 +40,8 @@ type mbToken struct {
 	AccessToken string `json:"AccessToken"`
 }
 
-/**
- * Retrieve a MindBody Access Token
- */
+// Retrieve a MindBody Access Token
 func (token *mbToken) GetMindBodyToken(config *Config) error {
-	var client http.Client
-
 	// Build request body JSON
 	body := map[string]string{
 		"Username": config.MindbodyUsername,
@@ -66,45 +63,15 @@ func (token *mbToken) GetMindBodyToken(config *Config) error {
 	req.Header.Add("SiteId", config.MindbodySite)
 	req.Header.Add("Api-Key", config.MindbodyAPIKey)
 
-	// Make request
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode >= 400 {
-		bodyBytes, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return err
-		}
-		bodyString := string(bodyBytes)
-		return fmt.Errorf("auth.GetMindBodyToken: Error fetching MindBody user token with status code: %d, and body: %s", res.StatusCode, bodyString)
-	}
-
-	// Handle response
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		log.Println("auth.GetMindBodyToken: Error reading response", err)
-		return err
-	}
-
-	// Build response into Model
-	err = json.Unmarshal(data, &token)
-	if err != nil {
-		log.Println("auth.GetMindBodyToken: Error unmarshalling json", err)
+	if _, err = async.DoRequest(req, token); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-/**
- * Retrieve a Brivo Access Token using password grant type
- */
+// Retrieve a Brivo Access Token using password grant type
 func (token *brivoToken) GetBrivoToken(config *Config) error {
-	var client http.Client
-
 	// Create HTTP request
 	req, err := http.NewRequest("POST", fmt.Sprintf("https://auth.brivo.com/oauth/token?grant_type=password&username=%s&password=%s", config.BrivoUsername, config.BrivoPassword), nil)
 	if err != nil {
@@ -116,33 +83,7 @@ func (token *brivoToken) GetBrivoToken(config *Config) error {
 	req.Header.Add("Authorization", "Basic "+config.BrivoClientCredentials)
 	req.Header.Add("api-key", config.BrivoAPIKey)
 
-	// Make request
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode >= 400 {
-		bodyBytes, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return err
-		}
-		bodyString := string(bodyBytes)
-		return fmt.Errorf("auth.GetBrivoToken: Error fetching Brivo user token with status code: %d, and body: %s", res.StatusCode, bodyString)
-	}
-
-	// Handle response
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		log.Println("auth.GetBrivoToken: Error reading response", err)
-		return err
-	}
-
-	// Build response into Model
-	err = json.Unmarshal(data, &token)
-	if err != nil {
-		log.Println("auth.GetBrivoToken: Error unmarshalling json", err)
+	if _, err = async.DoRequest(req, token); err != nil {
 		return err
 	}
 

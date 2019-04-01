@@ -11,11 +11,10 @@
 package models
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+
+	async "github.com/christophertino/fiao-sync/utils"
 )
 
 // MindBody Client Data
@@ -44,17 +43,8 @@ type mbUser struct {
 	Action      string `json:"Action"` // None,Added,Updated,Failed,Removed
 }
 
-type mbError struct {
-	Error struct {
-		Message string `json:"Message"`
-		Code    string `json:"Code"`
-	} `json:"Error"`
-}
-
 // GetClients : Build MindBody data model with Client data
 func (mb *MindBody) GetClients(config *Config, token string) error {
-	var client http.Client
-
 	// Create HTTP request
 	req, err := http.NewRequest("GET", "https://api.mindbodyonline.com/public/v6/client/clients", nil)
 	if err != nil {
@@ -66,33 +56,7 @@ func (mb *MindBody) GetClients(config *Config, token string) error {
 	req.Header.Add("Api-Key", config.MindbodyAPIKey)
 	req.Header.Add("Authorization", token)
 
-	// Make request
-	res, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode >= 400 {
-		bodyBytes, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return err
-		}
-		bodyString := string(bodyBytes)
-		return fmt.Errorf("mindbody.GetClients: Error fetching MB clients with status code: %d, and body: %s", res.StatusCode, bodyString)
-	}
-
-	// Handle response
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		log.Println("mindbody.GetClients: Error reading response", err)
-		return err
-	}
-
-	// Build response into Model
-	err = json.Unmarshal(data, &mb)
-	if err != nil {
-		log.Println("mindbody.GetClients: Error unmarshalling json", err)
+	if _, err = async.DoRequest(req, mb); err != nil {
 		return err
 	}
 
