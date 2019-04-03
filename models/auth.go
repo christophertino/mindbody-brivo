@@ -41,7 +41,7 @@ type mbToken struct {
 }
 
 // Retrieve a MindBody Access Token
-func (token *mbToken) GetMindBodyToken(config *Config) error {
+func (token *mbToken) GetMindBodyToken(config Config) error {
 	// Build request body JSON
 	body := map[string]string{
 		"Username": config.MindbodyUsername,
@@ -63,7 +63,7 @@ func (token *mbToken) GetMindBodyToken(config *Config) error {
 	req.Header.Add("SiteId", config.MindbodySite)
 	req.Header.Add("Api-Key", config.MindbodyAPIKey)
 
-	if _, err = async.DoRequest(req, token); err != nil {
+	if err = async.DoRequest(req, token); err != nil {
 		return err
 	}
 
@@ -83,7 +83,7 @@ func (token *brivoToken) GetBrivoToken(config *Config) error {
 	req.Header.Add("Authorization", "Basic "+config.BrivoClientCredentials)
 	req.Header.Add("api-key", config.BrivoAPIKey)
 
-	if _, err = async.DoRequest(req, token); err != nil {
+	if err = async.DoRequest(req, token); err != nil {
 		return err
 	}
 

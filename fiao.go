@@ -28,7 +28,7 @@ func Authenticate(config *models.Config) {
 	errCh := make(chan error)
 
 	go func() {
-		if err := auth.MindBodyToken.GetMindBodyToken(config); err != nil {
+		if err := auth.MindBodyToken.GetMindBodyToken(*config); err != nil {
 			errCh <- err
 		} else {
 			doneCh <- true
@@ -55,22 +55,22 @@ func Authenticate(config *models.Config) {
 
 	if config.ProgramArgs == "provision" {
 		// TODO: Use this to build Brivo client list from scratch (first-run)
-		syncUsers(config, &auth)
+		syncUsers(*config, auth)
 	} else {
 		// TODO: Implement MindBody client webhook and poll for changes
 	}
 }
 
-func syncUsers(config *models.Config, auth *models.Auth) {
+func syncUsers(config models.Config, auth models.Auth) {
 	// Get all MindBody clients
 	mb.GetClients(config, auth.MindBodyToken.AccessToken)
 	// Get existing Brivo clients
-	if err := brivo.ListUsers(config, auth.BrivoToken.AccessToken); err != nil {
+	if err := brivo.ListUsers(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 		log.Fatalln("fiao.syncUsers: Failed fetching Brivo users \n", err)
 	}
 
 	// Map existing user data from MindBody to Brivo
-	brivo.BuildBrivoUsers(&mb, config, auth)
+	brivo.BuildBrivoUsers(mb, config, auth)
 
 	// POST new users to Brivo
 
