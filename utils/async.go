@@ -19,13 +19,15 @@ import (
 )
 
 // DoRequest : Utility function for making and handling async requests
-func DoRequest(req *http.Request, output interface{}) (interface{}, error) {
+// @param	http.Request
+// @param	output		pointer to structure that we will Unmarshall into
+func DoRequest(req *http.Request, output interface{}) error {
 	var client http.Client
 
 	// Make request
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer res.Body.Close()
 
@@ -33,25 +35,25 @@ func DoRequest(req *http.Request, output interface{}) (interface{}, error) {
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Println("async.doRequest: Error reading response", err)
-		return nil, err
+		return err
 	}
 
 	// Check for error response
 	if res.StatusCode >= 400 {
 		var errorOut map[string]interface{}
 		if err = json.Unmarshal(data, &errorOut); err != nil {
-			return nil, err
+			return err
 		}
-		return nil, fmt.Errorf("async.doRequest: Error creating credential \n %+v", errorOut)
+		return fmt.Errorf("async.doRequest: Error creating credential \n %+v", errorOut)
 	}
 
-	// Build response into Model
-	if err = json.Unmarshal(data, &output); err != nil {
+	// Build response into output *interface{}
+	if err = json.Unmarshal(data, output); err != nil {
 		log.Println("async.doRequest: Error unmarshalling json", err)
-		return nil, err
+		return err
 	}
 
-	// fmt.Printf("%+v", output)
+	// fmt.Printf("%+v \n", output)
 
-	return output, nil
+	return nil
 }

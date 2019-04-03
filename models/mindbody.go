@@ -44,7 +44,7 @@ type mbUser struct {
 }
 
 // GetClients : Build MindBody data model with Client data
-func (mb *MindBody) GetClients(config *Config, token string) error {
+func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 	// Create HTTP request
 	req, err := http.NewRequest("GET", "https://api.mindbodyonline.com/public/v6/client/clients", nil)
 	if err != nil {
@@ -54,9 +54,9 @@ func (mb *MindBody) GetClients(config *Config, token string) error {
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("SiteId", config.MindbodySite)
 	req.Header.Add("Api-Key", config.MindbodyAPIKey)
-	req.Header.Add("Authorization", token)
+	req.Header.Add("Authorization", mbAccessToken)
 
-	if _, err = async.DoRequest(req, mb); err != nil {
+	if err = async.DoRequest(req, mb); err != nil {
 		return err
 	}
 
