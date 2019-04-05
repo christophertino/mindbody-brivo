@@ -19,6 +19,7 @@ type Config struct {
 	BrivoClientID          string `json:"brivo_client_id"`
 	BrivoClientSecret      string `json:"brivo_client_secret"`
 	BrivoAPIKey            string `json:"brivo_api_key"`
+	BrivoMemberGroupID     int64  `json:"brivo_member_group_id"`
 	BrivoClientCredentials string ""
 
 	MindbodyAPIKey   string `json:"mindbody_api_key"`

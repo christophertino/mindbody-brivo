@@ -22,6 +22,10 @@ import (
 // @param	http.Request
 // @param	output		pointer to structure that we will Unmarshall into
 func DoRequest(req *http.Request, output interface{}) error {
+	// Proxy Debugging
+	// var PTransport = &http.Transport{Proxy: http.ProxyFromEnvironment}
+	// client := http.Client{Transport: PTransport}
+
 	var client http.Client
 
 	// Make request
@@ -44,7 +48,12 @@ func DoRequest(req *http.Request, output interface{}) error {
 		if err = json.Unmarshal(data, &errorOut); err != nil {
 			return err
 		}
-		return fmt.Errorf("async.doRequest: Error creating credential \n %+v", errorOut)
+		return fmt.Errorf("async.doRequest: Error code %d and output: \n %+v", res.StatusCode, errorOut)
+	}
+
+	// Don't attempt to unmarshall 204's
+	if res.StatusCode == 204 {
+		return nil
 	}
 
 	// Build response into output *interface{}
