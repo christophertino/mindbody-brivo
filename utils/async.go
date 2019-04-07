@@ -18,6 +18,16 @@ import (
 	"net/http"
 )
 
+// JSONError : Custom error type for diagnosing server responses
+type JSONError struct {
+	Code int
+	Body map[string]interface{}
+}
+
+func (e *JSONError) Error() string {
+	return fmt.Sprintf("async.doRequest: Error code %d and output: \n %+v", e.Code, e.Body)
+}
+
 // DoRequest : Utility function for making and handling async requests
 // @param	http.Request
 // @param	output		pointer to structure that we will Unmarshall into
@@ -48,7 +58,7 @@ func DoRequest(req *http.Request, output interface{}) error {
 		if err = json.Unmarshal(data, &errorOut); err != nil {
 			return err
 		}
-		return fmt.Errorf("async.doRequest: Error code %d and output: \n %+v", res.StatusCode, errorOut)
+		return &JSONError{res.StatusCode, errorOut}
 	}
 
 	// Don't attempt to unmarshall 204's

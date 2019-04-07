@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 
 	async "github.com/christophertino/fiao-sync/utils"
 )
@@ -36,8 +37,8 @@ type CredentialFormat struct {
 	ID int `json:"id"`
 }
 
-// Create new Brivo access credential
-func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken string) (float64, error) {
+// Create new Brivo access credential. If the credential already exists, return the ID
+func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken string) (int, error) {
 	// Build request body JSON
 	bytesMessage, err := json.Marshal(cred)
 	if err != nil {
@@ -56,10 +57,18 @@ func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken st
 	req.Header.Add("api-key", brivoAPIKey)
 
 	var r map[string]interface{}
-	if err := async.DoRequest(req, &r); err != nil {
-		return 0, err
+	err = async.DoRequest(req, &r)
+	switch err := err.(type) {
+	case nil:
+		// Return the new credential ID
+		return int(r["id"].(float64)), nil
+	case *async.JSONError:
+		// If the credential already exists, return the credential ID
+		if err.Code == 400 && strings.Contains(err.Body["message"].(string), "Duplicate Credential Found") {
+			log.Println("Credential already exists, continue.")
+			return cred.CredentialFormat.ID, nil
+		}
 	}
 
-	// Return the new credential ID
-	return r["id"].(float64), nil
+	return 0, err
 }
