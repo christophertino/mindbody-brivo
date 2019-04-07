@@ -30,7 +30,7 @@ type MindBody struct {
 
 type mbUser struct {
 	ID          string `json:"Id"`       // Client’s barcode ID used for client-related API calls
-	UniqueID    int64  `json:"UniqueId"` // Client’s unique system-generated ID
+	UniqueID    int    `json:"UniqueId"` // Client’s unique system-generated ID
 	FirstName   string `json:"FirstName"`
 	MiddleName  string `json:"MiddleName"`
 	LastName    string `json:"LastName"`
