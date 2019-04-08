@@ -54,10 +54,10 @@ func Authenticate(config *models.Config) {
 	// fmt.Printf("%+v", auth)
 
 	if config.ProgramArgs == "provision" {
-		// TODO: Use this to build Brivo client list from scratch (first-run)
+		// Build Brivo client list from scratch (first-run)
 		syncUsers(*config, auth)
 	} else {
-		// TODO: Implement MindBody client webhook and poll for changes
+		// @TODO: Implement MindBody client webhook and poll for changes
 	}
 }
 
@@ -71,8 +71,4 @@ func syncUsers(config models.Config, auth models.Auth) {
 
 	// Map existing user data from MindBody to Brivo
 	brivo.BuildBrivoUsers(mb, config, auth)
-
-	// POST new users to Brivo
-
-	// Map user groups
 }
