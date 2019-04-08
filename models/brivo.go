@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 
 	async "github.com/christophertino/fiao-sync/utils"
 )
@@ -85,9 +86,10 @@ func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error
 
 // BuildBrivoUsers : Convert MB users to Brivo users
 func (brivo *Brivo) BuildBrivoUsers(mb MindBody, config Config, auth Auth) {
+	var wg sync.WaitGroup
+
 	// Map MindBody fields to Brivo
-	// for i := range mb.Clients {
-	for i := 0; i < 1; i++ {
+	for i := range mb.Clients {
 		var (
 			user      brivoUser
 			userEmail email
@@ -121,37 +123,44 @@ func (brivo *Brivo) BuildBrivoUsers(mb MindBody, config Config, auth Auth) {
 			user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
 		}
 
-		// Create new Brivo credential for this user
-		cred := Credential{
-			CredentialFormat: CredentialFormat{
-				ID: 110, // Unknown Format
-			},
-			ReferenceID:       user.ExternalID, // barcode ID
-			EncodedCredential: hex.EncodeToString([]byte(user.ExternalID)),
-		}
-		credID, err := cred.createCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-		if err != nil {
-			log.Println("brivo.BuildBrivoUsers: Error creating credential. Skip to next user. \n", err)
-			continue
-		}
+		wg.Add(1)
+		go func(u brivoUser) {
+			defer wg.Done()
+			// Create new Brivo credential for this user
+			cred := Credential{
+				CredentialFormat: CredentialFormat{
+					ID: 110, // Unknown Format
+				},
+				ReferenceID:       u.ExternalID, // barcode ID
+				EncodedCredential: hex.EncodeToString([]byte(u.ExternalID)),
+			}
+			credID, err := cred.createCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+			if err != nil {
+				log.Println("brivo.BuildBrivoUsers: Error creating credential. Skip to next user. \n", err)
+				return
+			}
 
-		// Create a new user
-		if err := user.createUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-			log.Println("brivo.BuildBrivoUsers: Error creating user. Skip to next user. \n", err)
-			continue
-		}
+			// Create a new user
+			if err := u.createUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				log.Println("brivo.BuildBrivoUsers: Error creating user. Skip to next user. \n", err)
+				return
+			}
 
-		// Assign credential to user
-		if err := user.assignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-			log.Println("brivo.BuildBrivoUsers: Error assigning credential to user. Skip to next user. \n", err)
-			continue
-		}
+			// Assign credential to user
+			if err := u.assignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				log.Println("brivo.BuildBrivoUsers: Error assigning credential to user. Skip to next user. \n", err)
+				return
+			}
 
-		// Assign user to group
-		if err := user.assignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-			log.Println("brivo.BuildBrivoUsers: Error assigning user to group. Skip to next user. \n", err)
-			continue
-		}
+			// Assign user to group
+			if err := u.assignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				log.Println("brivo.BuildBrivoUsers: Error assigning user to group. Skip to next user. \n", err)
+				return
+			}
+		}(user)
+		wg.Wait()
+
+		log.Println("Finished creating users")
 	}
 }
 
