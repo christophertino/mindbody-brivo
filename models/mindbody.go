@@ -49,7 +49,7 @@ func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 	// @TODO - There's a bug in MB that sets TotalResults = RequestedLimit, so pagination does not work.
 	// Instead you can set your &limit param to your total data set, since it doesn't seem to cap at the default value of 100
 	var (
-		limit       = 100
+		limit       = 5
 		count       = 0
 		resultsLeft = 1 // so that we loop at least once
 	)

@@ -72,7 +72,7 @@ func DoRequest(req *http.Request, output interface{}) error {
 		return err
 	}
 
-	// fmt.Printf("%+v \n", output)
+	// fmt.Printf("Async Output: %+v\n", output)
 
 	return nil
 }

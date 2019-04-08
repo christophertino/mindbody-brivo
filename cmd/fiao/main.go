@@ -33,7 +33,7 @@ func main() {
 		log.Fatal("main: Unmarshal error:", err)
 	}
 
-	// fmt.Printf("%+v", config)
+	// fmt.Printf("Config Model: %+v\n", config)
 
 	// Check for command-line arguments
 	if len(os.Args) > 1 {
