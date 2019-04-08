@@ -11,6 +11,7 @@
 package models
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -45,19 +46,34 @@ type mbUser struct {
 
 // GetClients : Build MindBody data model with Client data
 func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
-	// Create HTTP request
-	req, err := http.NewRequest("GET", "https://api.mindbodyonline.com/public/v6/client/clients", nil)
-	if err != nil {
-		log.Println("mindbody.GetClients: Error creating HTTP request", err)
-		return err
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("SiteId", config.MindbodySite)
-	req.Header.Add("Api-Key", config.MindbodyAPIKey)
-	req.Header.Add("Authorization", mbAccessToken)
+	// @TODO - There's a bug in MB that sets TotalResults = RequestedLimit, so pagination does not work.
+	// Instead you can set your &limit param to your total data set, since it doesn't seem to cap at the default value of 100
+	var (
+		limit       = 100
+		count       = 0
+		resultsLeft = 1 // so that we loop at least once
+	)
+	for {
+		if resultsLeft <= 0 {
+			break
+		}
+		// Create HTTP request
+		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.mindbodyonline.com/public/v6/client/clients?limit=%d&offset=%d", limit, count), nil)
+		if err != nil {
+			log.Println("mindbody.GetClients: Error creating HTTP request", err)
+			return err
+		}
+		req.Header.Add("Content-Type", "application/json")
+		req.Header.Add("SiteId", config.MindbodySite)
+		req.Header.Add("Api-Key", config.MindbodyAPIKey)
+		req.Header.Add("Authorization", mbAccessToken)
 
-	if err = async.DoRequest(req, mb); err != nil {
-		return err
+		if err = async.DoRequest(req, mb); err != nil {
+			return err
+		}
+
+		count = count + mb.PaginationResponse.PageSize
+		resultsLeft = mb.PaginationResponse.TotalResults - count
 	}
 
 	return nil
