@@ -25,7 +25,7 @@ type JSONError struct {
 }
 
 func (e *JSONError) Error() string {
-	return fmt.Sprintf("async.doRequest: Error code %d and output: \n %+v", e.Code, e.Body)
+	return fmt.Sprintf("async.doRequest: Error code %d and output:\n%+v", e.Code, e.Body)
 }
 
 // DoRequest : Utility function for making and handling async requests

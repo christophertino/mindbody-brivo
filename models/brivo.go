@@ -57,6 +57,11 @@ type phoneNumber struct {
 	NumberType string `json:"type"`
 }
 
+type outputLog struct {
+	success int
+	failed  map[string]string
+}
+
 var brivoIDSet map[string]bool // keep track of all existing IDs for quick lookup
 
 // ListUsers : Build Brivo data model with user data
@@ -86,7 +91,11 @@ func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error
 
 // BuildBrivoUsers : Convert MB users to Brivo users
 func (brivo *Brivo) BuildBrivoUsers(mb MindBody, config Config, auth Auth) {
-	var wg sync.WaitGroup
+	var (
+		wg sync.WaitGroup
+		o  outputLog
+	)
+	o.failed = make(map[string]string)
 
 	// Map MindBody fields to Brivo
 	for i := range mb.Clients {
@@ -136,32 +145,37 @@ func (brivo *Brivo) BuildBrivoUsers(mb MindBody, config Config, auth Auth) {
 			}
 			credID, err := cred.createCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 			if err != nil {
-				log.Println("brivo.BuildBrivoUsers: Error creating credential. Skip to next user. \n", err)
+				log.Printf("brivo.BuildBrivoUsers: Error creating credential for user %s with error: %s. Skip to next user.", user.ExternalID, err)
+				o.failed[user.ExternalID] = "Create Credential"
 				return
 			}
 
 			// Create a new user
 			if err := u.createUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				log.Println("brivo.BuildBrivoUsers: Error creating user. Skip to next user. \n", err)
+				log.Printf("brivo.BuildBrivoUsers: Error creating user %s with error: %s. Skip to next user.", user.ExternalID, err)
+				o.failed[user.ExternalID] = "Create User"
 				return
 			}
 
 			// Assign credential to user
 			if err := u.assignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				log.Println("brivo.BuildBrivoUsers: Error assigning credential to user. Skip to next user. \n", err)
+				log.Printf("brivo.BuildBrivoUsers: Error assigning credential to user %s with error: %s. Skip to next user.", user.ExternalID, err)
+				o.failed[user.ExternalID] = "Assign Credential"
 				return
 			}
 
 			// Assign user to group
 			if err := u.assignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				log.Println("brivo.BuildBrivoUsers: Error assigning user to group. Skip to next user. \n", err)
+				log.Printf("brivo.BuildBrivoUsers: Error assigning user %s to group with error: %s. Skip to next user.", user.ExternalID, err)
+				o.failed[user.ExternalID] = "Assign Group"
 				return
 			}
+			o.success++
+			log.Printf("Successfully created Brivo user %s\n", user.ExternalID)
 		}(user)
 		wg.Wait()
-
-		log.Println("Finished creating users")
 	}
+	o.printLog()
 }
 
 // Create a new Brivo user
@@ -237,4 +251,13 @@ func (user *brivoUser) assignUserGroup(groupID int, brivoAPIKey string, brivoAcc
 	}
 
 	return nil
+}
+
+func (o *outputLog) printLog() {
+	log.Println("---------- OUTPUT LOG ----------")
+	log.Println("Users Created Successfully:", o.success)
+	log.Println("Users Failed:", len(o.failed))
+	for index, value := range o.failed {
+		log.Printf("External ID: %s Reason: %s\n", index, value)
+	}
 }
