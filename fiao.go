@@ -12,6 +12,7 @@ package fiao
 
 import (
 	"log"
+	"sync"
 
 	"github.com/christophertino/fiao-sync/models"
 )
@@ -66,24 +67,24 @@ func Authenticate(config *models.Config) {
 
 // Provision Brivo client list from MindBody
 func syncUsers(config models.Config, auth models.Auth) {
-	doneCh := make(chan bool)
-	errCh := make(chan error)
+	var wg sync.WaitGroup
+	var errCh = make(chan error)
 
 	// Get all MindBody clients
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		if err := mb.GetClients(config, auth.MindBodyToken.AccessToken); err != nil {
 			errCh <- err
-		} else {
-			doneCh <- true
 		}
 	}()
 
 	// Get existing Brivo clients
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		if err := brivo.ListUsers(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 			errCh <- err
-		} else {
-			doneCh <- true
 		}
 	}()
 
@@ -91,10 +92,12 @@ func syncUsers(config models.Config, auth models.Auth) {
 		select {
 		case err := <-errCh:
 			log.Fatalln("fiao.syncUsers: User fetch failed:\n", err)
-		case <-doneCh:
+		default:
 			log.Println("fiao.syncUsers: User fetch success!")
 		}
 	}
+
+	wg.Wait()
 
 	// fmt.Printf("MindBody Model: %+v\n Brivo Model: %+v\n", mb, brivo)
 
