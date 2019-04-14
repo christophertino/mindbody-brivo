@@ -15,6 +15,7 @@ import (
 	"sync"
 
 	"github.com/christophertino/fiao-sync/models"
+	"github.com/christophertino/fiao-sync/server"
 )
 
 var (
@@ -61,7 +62,8 @@ func Authenticate(config *models.Config) {
 		// Build Brivo client list from scratch (first-run)
 		syncUsers(*config, auth)
 	} else {
-		// @TODO: Implement MindBody client webhook and poll for changes
+		// Initialize API routes and listen for MindBody webhook events
+		server.Init()
 	}
 }
 
