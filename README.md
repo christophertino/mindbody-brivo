@@ -13,6 +13,16 @@ Built for the Federation of Italian-American Organizations of Brooklyn.
 + [Brivo OnAir API](https://developer.brivo.com/)
 + [MindBody API](https://developers.mindbodyonline.com/)
 
+### Create MindBody Webhook Subscriptions
+
+This app requires active webhook subscriptions for:
+
++ client.created
++ client.updated
++ client.deactivated
+
+See [Webhook Subscriptions](https://developers.mindbodyonline.com/WebhooksDocumentation#subscriptions) documentation.
+
 ## Running the App
 
 ```sh
@@ -32,8 +42,13 @@ $ cp conf/conf.example.json conf/conf.json
 ```
 
 ```sh
-# Run the application. Use optional argument 'provision' for first-run
-$ go run cmd/fiao/main.go [provision]
+# On first run, copy all MindBody users to Brivo
+$ go run cmd/fiao/main.go provision
+```
+
+```sh
+# Run the application and listen for webhook events
+$ go run cmd/fiao/main.go
 ```
 
 ## License
