@@ -1,9 +1,7 @@
 /**
  * MindBody Data Model
  *
- * Federation of Italian-American Organizations of Brooklyn
- * https://fiaobrooklyn.org/
- *
+ * @project 	MINDBODY / Brivo OnAir Membership Sync
  * @author		Christopher Tino
  * @license		MPL 2.0
  */
@@ -15,7 +13,7 @@ import (
 	"log"
 	"net/http"
 
-	async "github.com/christophertino/fiao-sync/utils"
+	async "github.com/christophertino/mindbody-brivo/utils"
 )
 
 // MindBody Client Data

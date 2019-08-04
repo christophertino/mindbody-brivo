@@ -1,21 +1,18 @@
 /**
- * Application Logic
+ * Migrate all MINDBODY clients to Brivo as new users
  *
- * Federation of Italian-American Organizations of Brooklyn
- * https://fiaobrooklyn.org/
- *
+ * @project 	MINDBODY / Brivo OnAir Membership Sync
  * @author		Christopher Tino
  * @license		MPL 2.0
  */
 
-package fiao
+package sync
 
 import (
 	"log"
 	"sync"
 
-	"github.com/christophertino/fiao-sync/models"
-	"github.com/christophertino/fiao-sync/server"
+	"github.com/christophertino/mindbody-brivo/models"
 )
 
 var (
@@ -50,21 +47,16 @@ func Authenticate(config *models.Config) {
 	for i := 0; i < 2; i++ {
 		select {
 		case err := <-errCh:
-			log.Fatalln("fiao.Authenticate: Token fetch failed:\n", err)
+			log.Fatalln("sync.Authenticate: Token fetch failed:\n", err)
 		case <-doneCh:
-			log.Println("fiao.Authenticate: Token fetch success!")
+			log.Println("sync.Authenticate: Token fetch success!")
 		}
 	}
 
 	// fmt.Printf("AUTH Model: %+v\n", auth)
 
-	if config.ProgramArgs == "provision" {
-		// Build Brivo client list from scratch (first-run)
-		syncUsers(*config, auth)
-	} else {
-		// Initialize API routes and listen for MindBody webhook events
-		server.Init()
-	}
+	// Build Brivo client list from scratch (first-run)
+	syncUsers(*config, auth)
 }
 
 // Provision Brivo client list from MindBody
@@ -93,9 +85,9 @@ func syncUsers(config models.Config, auth models.Auth) {
 	for i := 0; i < 2; i++ {
 		select {
 		case err := <-errCh:
-			log.Fatalln("fiao.syncUsers: User fetch failed:\n", err)
+			log.Fatalln("sync.syncUsers: User fetch failed:\n", err)
 		default:
-			log.Println("fiao.syncUsers: User fetch success!")
+			log.Println("sync.syncUsers: User fetch success!")
 		}
 	}
 

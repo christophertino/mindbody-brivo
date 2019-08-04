@@ -1,6 +1,6 @@
 go 1.12
 
-module github.com/christophertino/fiao-sync
+module github.com/christophertino/mindbody-brivo
 
 require (
 	github.com/gorilla/mux v1.7.1
