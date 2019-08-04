@@ -1,9 +1,7 @@
 /**
  * Configuration Data Model
  *
- * Federation of Italian-American Organizations of Brooklyn
- * https://fiaobrooklyn.org/
- *
+ * @project 	MINDBODY / Brivo OnAir Membership Sync
  * @author		Christopher Tino
  * @license		MPL 2.0
  */
@@ -26,8 +24,6 @@ type Config struct {
 	MindbodyUsername string `json:"mindbody_username"`
 	MindbodyPassword string `json:"mindbody_password"`
 	MindbodySite     string `json:"mindbody_site"`
-
-	ProgramArgs string ""
 }
 
 // BuildClientCredentials : Base64Encoded credentials for Authorization header

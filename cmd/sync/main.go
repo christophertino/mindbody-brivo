@@ -1,9 +1,7 @@
 /**
- * Application Init
+ * Sync Init
  *
- * Federation of Italian-American Organizations of Brooklyn
- * https://fiaobrooklyn.org/
- *
+ * @project 	MINDBODY / Brivo OnAir Membership Sync
  * @author		Christopher Tino
  * @license		MPL 2.0
  */
@@ -14,10 +12,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
-	"os"
 
-	"github.com/christophertino/fiao-sync"
-	"github.com/christophertino/fiao-sync/models"
+	sync "github.com/christophertino/mindbody-brivo"
+	"github.com/christophertino/mindbody-brivo/models"
 )
 
 func main() {
@@ -35,10 +32,5 @@ func main() {
 
 	// fmt.Printf("Config Model: %+v\n", config)
 
-	// Check for command-line arguments
-	if len(os.Args) > 1 {
-		config.ProgramArgs = os.Args[1]
-	}
-
-	fiao.Authenticate(&config)
+	sync.Authenticate(&config)
 }

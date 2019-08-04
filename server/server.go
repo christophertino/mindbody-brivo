@@ -1,9 +1,7 @@
 /**
- * HTTP Server
+ * Launch application API to consume MINDBODY webhooks
  *
- * Federation of Italian-American Organizations of Brooklyn
- * https://fiaobrooklyn.org/
- *
+ * @project 	MINDBODY / Brivo OnAir Membership Sync
  * @author		Christopher Tino
  * @license		MPL 2.0
  */
@@ -17,13 +15,13 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/christophertino/fiao-sync/models"
+	"github.com/christophertino/mindbody-brivo/models"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
 )
 
 // Init : Initialize API routes
-func Init() {
+func Init(config *models.Config) {
 	router := mux.NewRouter()
 	router.HandleFunc("/api/user", userHandler).Methods("POST")
 
@@ -60,7 +58,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request) {
 	case "client.created":
 		// Create a new user
 	case "client.updated":
-		// Update an exisitng user
+		// Update an existing user
 	case "client.deactivated":
 		// Deactivate an existing user (credential and account)
 	default:

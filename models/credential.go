@@ -6,9 +6,7 @@
  *
  * @link	https://apidocs.brivo.com/#api-Credential-ListCredentialFormats
  *
- * Federation of Italian-American Organizations of Brooklyn
- * https://fiaobrooklyn.org/
- *
+ * @project 	MINDBODY / Brivo OnAir Membership Sync
  * @author		Christopher Tino
  * @license		MPL 2.0
  */
@@ -22,7 +20,7 @@ import (
 	"net/http"
 	"strings"
 
-	async "github.com/christophertino/fiao-sync/utils"
+	async "github.com/christophertino/mindbody-brivo/utils"
 )
 
 // Credential : Brivo access credential
