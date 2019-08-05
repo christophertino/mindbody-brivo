@@ -1,4 +1,4 @@
-// +heroku install ./cmd/webhook/... ./bin
+// +heroku goVersion go1.12
 
 go 1.12
 
