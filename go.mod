@@ -1,3 +1,5 @@
+// +heroku install ./cmd/webhook/... ./bin
+
 go 1.12
 
 module github.com/christophertino/mindbody-brivo
