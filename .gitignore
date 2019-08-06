@@ -1,6 +1,3 @@
-# Configuration
-conf/conf.json
-
 # Dependencies 
 vendor/
 
@@ -20,3 +17,4 @@ main
 
 # Heroku
 bin/
+.env

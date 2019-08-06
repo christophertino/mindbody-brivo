@@ -8,25 +8,60 @@
 
 package models
 
-import "encoding/base64"
+import (
+	"encoding/base64"
+	"log"
+	"os"
 
-// Config : Settings imported from conf.json
+	"github.com/joho/godotenv"
+)
+
+// Config : Settings imported from .env
 type Config struct {
-	BrivoUsername          string `json:"brivo_username"`
-	BrivoPassword          string `json:"brivo_password"`
-	BrivoClientID          string `json:"brivo_client_id"`
-	BrivoClientSecret      string `json:"brivo_client_secret"`
-	BrivoAPIKey            string `json:"brivo_api_key"`
-	BrivoMemberGroupID     int    `json:"brivo_member_group_id"`
-	BrivoClientCredentials string ""
+	BrivoUsername          string
+	BrivoPassword          string
+	BrivoClientID          string
+	BrivoClientSecret      string
+	BrivoAPIKey            string
+	BrivoMemberGroupID     int
+	BrivoClientCredentials string
 
-	MindbodyAPIKey   string `json:"mindbody_api_key"`
-	MindbodyUsername string `json:"mindbody_username"`
-	MindbodyPassword string `json:"mindbody_password"`
-	MindbodySite     string `json:"mindbody_site"`
+	MindbodyAPIKey   string
+	MindbodyUsername string
+	MindbodyPassword string
+	MindbodySite     string
+}
+
+// GetConfig : Load environment variables into Config
+func (config *Config) GetConfig() {
+	// Load environment variables
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("main: Error loading .env file")
+	}
+
+	config.BrivoUsername = getEnvStrings("brivo_username", "")
+	config.BrivoPassword = getEnvStrings("brivo_password", "")
+	config.BrivoClientID = getEnvStrings("brivo_client_id", "")
+	config.BrivoClientSecret = getEnvStrings("brivo_client_secret", "")
+	config.BrivoAPIKey = getEnvStrings("brivo_api_key", "")
+	config.BrivoMemberGroupID = getEnvStrings("brivo_member_group_id", "0")
+
+	config.MindbodyAPIKey = getEnvStrings("mindbody_api_key", "")
+	config.MindbodyUsername = getEnvStrings("mindbody_username", "")
+	config.MindbodyPassword = getEnvStrings("mindbody_password", "")
+	config.MindbodySite = getEnvStrings("mindbody_site", "-99")
 }
 
 // BuildClientCredentials : Base64Encoded credentials for Authorization header
 func (config *Config) BuildClientCredentials() {
 	config.BrivoClientCredentials = base64.StdEncoding.EncodeToString([]byte(config.BrivoClientID + ":" + config.BrivoClientSecret))
+}
+
+// Helper function to check for environment variable strings
+func getEnvStrings(key string, defaultVal string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultVal
 }
