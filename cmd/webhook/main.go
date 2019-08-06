@@ -1,5 +1,8 @@
 /**
- * Webhook Init
+ * MINDBODY Webhook Init
+ *
+ * This application listens for webhook events from MINDBODY
+ * and makes corresponding changes in Brivo
  *
  * @project 	MINDBODY / Brivo OnAir Membership Sync
  * @author		Christopher Tino

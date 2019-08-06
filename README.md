@@ -35,8 +35,8 @@ $ go build cmd/mindbody-brivo/main.go
 ```
 
 ```sh
-# Generate configuration file
-$ cp conf/conf.example.json conf/conf.json
+# Generate a local configuration file
+$ cp .env-example .env
 ```
 
 ### Provision Brivo OnAir 
@@ -51,6 +51,28 @@ $ go run cmd/sync/main.go
 ```sh
 # Run the application and listen for webhook events
 $ go run cmd/webhook/main.go
+```
+
+## Heroku Integration
+
++ Install the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli)
++ Create config vars (from `.env`) on Heroku [link](https://devcenter.heroku.com/articles/config-vars#managing-config-vars)
+
+#### Developing Locally
+
+```sh
+# Compile the webhook application
+$ go build -o bin/webhook -v cmd/webhook/main.go
+```
+
+```sh
+# Run webhook application locally
+$ heroku local web
+```
+
+#### Deploying to Heroku
+```sh
+$ git push heroku master
 ```
 
 ## License
