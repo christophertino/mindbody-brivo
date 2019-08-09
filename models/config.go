@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -30,13 +31,14 @@ type Config struct {
 	MindbodyUsername string
 	MindbodyPassword string
 	MindbodySite     string
+
+	Debug bool
 }
 
 // GetConfig : Load environment variables into Config
 func (config *Config) GetConfig() {
 	// Load environment variables
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		log.Fatal("main: Error loading .env file")
 	}
 
@@ -45,12 +47,14 @@ func (config *Config) GetConfig() {
 	config.BrivoClientID = getEnvStrings("brivo_client_id", "")
 	config.BrivoClientSecret = getEnvStrings("brivo_client_secret", "")
 	config.BrivoAPIKey = getEnvStrings("brivo_api_key", "")
-	config.BrivoMemberGroupID = getEnvStrings("brivo_member_group_id", "0")
+	config.BrivoMemberGroupID, _ = strconv.Atoi(getEnvStrings("brivo_member_group_id", "0")) // parse to int
 
 	config.MindbodyAPIKey = getEnvStrings("mindbody_api_key", "")
 	config.MindbodyUsername = getEnvStrings("mindbody_username", "")
 	config.MindbodyPassword = getEnvStrings("mindbody_password", "")
 	config.MindbodySite = getEnvStrings("mindbody_site", "-99")
+
+	config.Debug, _ = strconv.ParseBool(getEnvStrings("debug", "false"))
 }
 
 // BuildClientCredentials : Base64Encoded credentials for Authorization header
@@ -59,9 +63,9 @@ func (config *Config) BuildClientCredentials() {
 }
 
 // Helper function to check for environment variable strings
-func getEnvStrings(key string, defaultVal string) string {
+func getEnvStrings(key string, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
-	return defaultVal
+	return defaultValue
 }

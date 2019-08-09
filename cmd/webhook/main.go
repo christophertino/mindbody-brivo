@@ -12,26 +12,13 @@
 package main
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"log"
-
 	"github.com/christophertino/mindbody-brivo/models"
 	"github.com/christophertino/mindbody-brivo/server"
 )
 
 func main() {
-	settings, err := ioutil.ReadFile("conf/conf.json")
-	if err != nil {
-		log.Fatal("main: Failed reading from conf", err)
-	}
-
 	var config models.Config
-
-	err = json.Unmarshal(settings, &config)
-	if err != nil {
-		log.Fatal("main: Unmarshal error:", err)
-	}
+	config.GetConfig()
 
 	// fmt.Printf("Config Model: %+v\n", config)
 
