@@ -44,10 +44,8 @@ type mbUser struct {
 
 // GetClients : Build MindBody data model with Client data
 func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
-	// @TODO - There's a bug in MB that sets TotalResults = RequestedLimit, so pagination does not work.
-	// Instead you can set your &limit param to your total data set, since it doesn't seem to cap at the default value of 100
 	var (
-		limit       = 5
+		limit       = 5 // max 200
 		count       = 0
 		resultsLeft = 1 // so that we loop at least once
 	)
@@ -68,6 +66,11 @@ func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 
 		if err = async.DoRequest(req, mb); err != nil {
 			return err
+		}
+
+		// For testing purposes just get a small set of users
+		if config.Debug == true {
+			break
 		}
 
 		count = count + mb.PaginationResponse.PageSize

@@ -12,8 +12,7 @@
 package main
 
 import (
-	"fmt"
-
+	sync "github.com/christophertino/mindbody-brivo"
 	"github.com/christophertino/mindbody-brivo/models"
 )
 
@@ -21,7 +20,7 @@ func main() {
 	var config models.Config
 	config.GetConfig()
 
-	fmt.Printf("Config Model: %+v\n", config)
+	// fmt.Printf("Config Model: %+v\n", config)
 
-	// sync.Authenticate(&config)
+	sync.Authenticate(&config)
 }
