@@ -78,6 +78,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 
 	// Build request data into Event model
 	var ev models.Event
+	fmt.Println(string(body))
 	if err = json.Unmarshal(body, &ev); err != nil {
 		fmt.Println("server.userHandler: Error unmarshalling json", err)
 		rw.WriteHeader(http.StatusBadRequest)
