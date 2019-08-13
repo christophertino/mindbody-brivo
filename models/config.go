@@ -33,6 +33,7 @@ type Config struct {
 	MindbodySite     string
 
 	Debug bool
+	Port  string
 }
 
 // GetConfig : Load environment variables into Config
@@ -55,6 +56,7 @@ func (config *Config) GetConfig() {
 	config.MindbodySite = getEnvStrings("mindbody_site", "-99")
 
 	config.Debug, _ = strconv.ParseBool(getEnvStrings("debug", "false"))
+	config.Port = getEnvStrings("port", "")
 }
 
 // BuildClientCredentials : Base64Encoded credentials for Authorization header
