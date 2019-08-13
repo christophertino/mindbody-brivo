@@ -10,6 +10,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -33,6 +34,10 @@ func Init(config *models.Config) {
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(http.StatusNoContent) // Respond with 204
 	}).Methods("HEAD")
+
+	router.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
+		fmt.Fprintf(rw, "FIAO Brooklyn API")
+	})
 
 	server := negroni.New()
 	server.UseHandler(router)
