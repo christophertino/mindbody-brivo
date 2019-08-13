@@ -10,7 +10,6 @@ package models
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	async "github.com/christophertino/mindbody-brivo/utils"
@@ -56,7 +55,7 @@ func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 		// Create HTTP request
 		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.mindbodyonline.com/public/v6/client/clients?limit=%d&offset=%d", limit, count), nil)
 		if err != nil {
-			log.Println("mindbody.GetClients: Error creating HTTP request", err)
+			fmt.Println("mindbody.GetClients: Error creating HTTP request", err)
 			return err
 		}
 		req.Header.Add("Content-Type", "application/json")

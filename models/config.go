@@ -43,7 +43,7 @@ func (config *Config) GetConfig() {
 	if os.Getenv("DEBUG") != "false" {
 		// Load local env file
 		if err := godotenv.Load(); err != nil {
-			log.Fatal("main: Error loading .env file")
+			log.Fatalln("config.GetConfig: Error loading .env file")
 		}
 	}
 
