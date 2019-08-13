@@ -36,11 +36,15 @@ type Config struct {
 	Port  string
 }
 
-// GetConfig : Load environment variables into Config
+// GetConfig : Load environment variables into Config. Uses Config Vars on
+// Heroku or .env file locally
 func (config *Config) GetConfig() {
-	// Load environment variables
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("main: Error loading .env file")
+	// Check for "debug" flag on Heroku
+	if os.Getenv("debug") != "false" {
+		// Load local env file
+		if err := godotenv.Load(); err != nil {
+			log.Fatal("main: Error loading .env file")
+		}
 	}
 
 	config.BrivoUsername = getEnvStrings("brivo_username", "")
