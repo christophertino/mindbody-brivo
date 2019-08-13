@@ -42,7 +42,7 @@ func Init(config *models.Config) {
 	server := negroni.New()
 	server.UseHandler(router)
 
-	fmt.Printf("Listening for webhook events at $PORT %s", config.Port)
+	fmt.Printf("Listening for webhook events at PORT %s", config.Port)
 
 	http.ListenAndServe(":"+config.Port, server)
 }
