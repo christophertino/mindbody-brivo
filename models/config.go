@@ -27,10 +27,11 @@ type Config struct {
 	BrivoMemberGroupID     int
 	BrivoClientCredentials string
 
-	MindbodyAPIKey   string
-	MindbodyUsername string
-	MindbodyPassword string
-	MindbodySite     string
+	MindbodyAPIKey              string
+	MindbodyMessageSignatureKey string
+	MindbodyUsername            string
+	MindbodyPassword            string
+	MindbodySite                string
 
 	Debug bool
 	Port  string
@@ -55,6 +56,7 @@ func (config *Config) GetConfig() {
 	config.BrivoMemberGroupID, _ = strconv.Atoi(getEnvStrings("brivo_member_group_id", "0")) // parse to int
 
 	config.MindbodyAPIKey = getEnvStrings("mindbody_api_key", "")
+	config.MindbodyMessageSignatureKey = getEnvStrings("mindbody_message_signature_key", "")
 	config.MindbodyUsername = getEnvStrings("mindbody_username", "")
 	config.MindbodyPassword = getEnvStrings("mindbody_password", "")
 	config.MindbodySite = getEnvStrings("mindbody_site", "-99")

@@ -1,5 +1,5 @@
 /**
- * MindBody Data Model
+ * MINDBODY Data Model
  *
  * @project 	MINDBODY / Brivo OnAir Membership Sync
  * @author		Christopher Tino
@@ -41,7 +41,7 @@ type mbUser struct {
 	Action      string `json:"Action"` // None,Added,Updated,Failed,Removed
 }
 
-// GetClients : Build MindBody data model with Client data
+// GetClients : Build MINDBODY data model with Client data
 func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 	var (
 		limit       = 5 // max 200
