@@ -40,8 +40,8 @@ type Config struct {
 // GetConfig : Load environment variables into Config. Uses Config Vars on
 // Heroku or .env file locally
 func (config *Config) GetConfig() {
-	// Check for "debug" flag on Heroku
-	if os.Getenv("DEBUG") != "false" {
+	// Check for "ENV" flag on Heroku
+	if os.Getenv("ENV") != "staging" && os.Getenv("ENV") != "production" {
 		// Load local env file
 		if err := godotenv.Load(); err != nil {
 			log.Fatalln("config.GetConfig: Error loading .env file")
