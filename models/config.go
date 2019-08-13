@@ -40,7 +40,7 @@ type Config struct {
 // Heroku or .env file locally
 func (config *Config) GetConfig() {
 	// Check for "debug" flag on Heroku
-	if os.Getenv("debug") != "false" {
+	if os.Getenv("DEBUG") != "false" {
 		// Load local env file
 		if err := godotenv.Load(); err != nil {
 			log.Fatal("main: Error loading .env file")
@@ -59,8 +59,8 @@ func (config *Config) GetConfig() {
 	config.MindbodyPassword = getEnvStrings("mindbody_password", "")
 	config.MindbodySite = getEnvStrings("mindbody_site", "-99")
 
-	config.Debug, _ = strconv.ParseBool(getEnvStrings("debug", "false"))
-	config.Port = getEnvStrings("port", "")
+	config.Debug, _ = strconv.ParseBool(getEnvStrings("DEBUG", "true"))
+	config.Port = getEnvStrings("PORT", "")
 }
 
 // BuildClientCredentials : Base64Encoded credentials for Authorization header
