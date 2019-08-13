@@ -9,6 +9,7 @@
 package sync
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -49,7 +50,7 @@ func Authenticate(config *models.Config) {
 		case err := <-errCh:
 			log.Fatalln("sync.Authenticate: Token fetch failed:\n", err)
 		case <-doneCh:
-			log.Println("sync.Authenticate: Token fetch success!")
+			fmt.Println("sync.Authenticate: Token fetch success!")
 		}
 	}
 
@@ -87,7 +88,7 @@ func syncUsers(config models.Config, auth models.Auth) {
 		case err := <-errCh:
 			log.Fatalln("sync.syncUsers: User fetch failed:\n", err)
 		default:
-			log.Println("sync.syncUsers: User fetch success!")
+			fmt.Println("sync.syncUsers: User fetch success!")
 		}
 	}
 

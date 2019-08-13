@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 
 	"github.com/christophertino/mindbody-brivo/models"
@@ -30,11 +29,12 @@ func Init(config *models.Config) {
 
 	// Used by MINDBODY to confirm webhook URL is valid
 	router.HandleFunc("/api/v1/user", func(rw http.ResponseWriter, req *http.Request) {
-		log.Println("Received HEAD Request. Webhook validation success")
+		fmt.Println("Received HEAD Request. Webhook validation successful")
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(http.StatusNoContent) // Respond with 204
 	}).Methods("HEAD")
 
+	// Set default handler
 	router.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
 		fmt.Fprintf(rw, "FIAO Brooklyn API")
 	})
@@ -42,7 +42,7 @@ func Init(config *models.Config) {
 	server := negroni.New()
 	server.UseHandler(router)
 
-	log.Printf("Listening for webhook events at $PORT %s", config.Port)
+	fmt.Printf("Listening for webhook events at $PORT %s", config.Port)
 
 	http.ListenAndServe(":"+config.Port, server)
 }
@@ -52,7 +52,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	// Handle request
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		log.Println("server.userHandler: Error reading request", err)
+		fmt.Println("server.userHandler: Error reading request", err)
 	}
 
 	// @TODO: validate X-Mindbody-Signature header
@@ -60,7 +60,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	// Build request data into Event model
 	var ev models.Event
 	if err = json.Unmarshal(body, &ev); err != nil {
-		log.Println("server.userHandler: Error unmarshalling json", err)
+		fmt.Println("server.userHandler: Error unmarshalling json", err)
 	}
 
 	// fmt.Printf("UserHandler Output: %+v\n", ev)
@@ -73,14 +73,14 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	switch ev.EventID {
 	case "client.created":
 		// Create a new user
-		log.Println("client.created")
+		fmt.Println("client.created")
 	case "client.updated":
 		// Update an existing user
-		log.Println("client.updated")
+		fmt.Println("client.updated")
 	case "client.deactivated":
 		// Deactivate an existing user (credential and account)
-		log.Println("client.deactivated")
+		fmt.Println("client.deactivated")
 	default:
-		log.Printf("server.userHandler: EventID %s not found\n", ev.EventID)
+		fmt.Printf("server.userHandler: EventID %s not found\n", ev.EventID)
 	}
 }

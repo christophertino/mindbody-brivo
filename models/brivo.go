@@ -13,7 +13,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 
@@ -67,7 +66,7 @@ func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error
 	// Create HTTP request
 	req, err := http.NewRequest("GET", "https://api.brivo.com/v1/api/users", nil)
 	if err != nil {
-		log.Println("brivo.ListUsers: Error creating HTTP request", err)
+		fmt.Println("brivo.ListUsers: Error creating HTTP request", err)
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
@@ -143,33 +142,33 @@ func (brivo *Brivo) BuildBrivoUsers(mb MindBody, config Config, auth Auth) {
 			}
 			credID, err := cred.createCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 			if err != nil {
-				log.Printf("brivo.BuildBrivoUsers: Error creating credential for user %s with error: %s. Skip to next user.", user.ExternalID, err)
+				fmt.Printf("brivo.BuildBrivoUsers: Error creating credential for user %s with error: %s. Skip to next user.", user.ExternalID, err)
 				o.failed[user.ExternalID] = "Create Credential"
 				return
 			}
 
 			// Create a new user
 			if err := u.createUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				log.Printf("brivo.BuildBrivoUsers: Error creating user %s with error: %s. Skip to next user.", user.ExternalID, err)
+				fmt.Printf("brivo.BuildBrivoUsers: Error creating user %s with error: %s. Skip to next user.", user.ExternalID, err)
 				o.failed[user.ExternalID] = "Create User"
 				return
 			}
 
 			// Assign credential to user
 			if err := u.assignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				log.Printf("brivo.BuildBrivoUsers: Error assigning credential to user %s with error: %s. Skip to next user.", user.ExternalID, err)
+				fmt.Printf("brivo.BuildBrivoUsers: Error assigning credential to user %s with error: %s. Skip to next user.", user.ExternalID, err)
 				o.failed[user.ExternalID] = "Assign Credential"
 				return
 			}
 
 			// Assign user to group
 			if err := u.assignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				log.Printf("brivo.BuildBrivoUsers: Error assigning user %s to group with error: %s. Skip to next user.", user.ExternalID, err)
+				fmt.Printf("brivo.BuildBrivoUsers: Error assigning user %s to group with error: %s. Skip to next user.", user.ExternalID, err)
 				o.failed[user.ExternalID] = "Assign Group"
 				return
 			}
 			o.success++
-			log.Printf("Successfully created Brivo user %s\n", user.ExternalID)
+			fmt.Printf("Successfully created Brivo user %s\n", user.ExternalID)
 		}(user)
 		wg.Wait()
 	}
@@ -186,14 +185,14 @@ func (user *brivoUser) createUser(brivoAPIKey string, brivoAccessToken string) e
 	// Build request body JSON
 	bytesMessage, err := json.Marshal(user)
 	if err != nil {
-		log.Println("brivo.createUser: Error building POST body json", err)
+		fmt.Println("brivo.createUser: Error building POST body json", err)
 		return err
 	}
 
 	// Create HTTP request
 	req, err := http.NewRequest("POST", "https://api.brivo.com/v1/api/users", bytes.NewBuffer(bytesMessage))
 	if err != nil {
-		log.Println("brivo.createUser: Error creating HTTP request", err)
+		fmt.Println("brivo.createUser: Error creating HTTP request", err)
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
@@ -216,7 +215,7 @@ func (user *brivoUser) assignUserCredential(credID int, brivoAPIKey string, briv
 	// Create HTTP request
 	req, err := http.NewRequest("PUT", fmt.Sprintf("https://api.brivo.com/v1/api/users/%d/credentials/%d", user.ID, credID), nil)
 	if err != nil {
-		log.Println("brivo.assignUserCredential: Error creating HTTP request", err)
+		fmt.Println("brivo.assignUserCredential: Error creating HTTP request", err)
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
@@ -236,7 +235,7 @@ func (user *brivoUser) assignUserGroup(groupID int, brivoAPIKey string, brivoAcc
 	// Create HTTP request
 	req, err := http.NewRequest("PUT", fmt.Sprintf("https://api.brivo.com/v1/api/groups/%d/users/%d", groupID, user.ID), nil)
 	if err != nil {
-		log.Println("brivo.assignUserGroup: Error creating HTTP request", err)
+		fmt.Println("brivo.assignUserGroup: Error creating HTTP request", err)
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
@@ -252,10 +251,10 @@ func (user *brivoUser) assignUserGroup(groupID int, brivoAPIKey string, brivoAcc
 }
 
 func (o *outputLog) printLog() {
-	log.Println("---------- OUTPUT LOG ----------")
-	log.Println("Users Created Successfully:", o.success)
-	log.Println("Users Failed:", len(o.failed))
+	fmt.Println("---------- OUTPUT LOG ----------")
+	fmt.Println("Users Created Successfully:", o.success)
+	fmt.Println("Users Failed:", len(o.failed))
 	for index, value := range o.failed {
-		log.Printf("External ID: %s Reason: %s\n", index, value)
+		fmt.Printf("External ID: %s Reason: %s\n", index, value)
 	}
 }

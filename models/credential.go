@@ -16,7 +16,7 @@ package models
 import (
 	"bytes"
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -40,14 +40,14 @@ func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken st
 	// Build request body JSON
 	bytesMessage, err := json.Marshal(cred)
 	if err != nil {
-		log.Println("credential.createCredential: Error building POST body json", err)
+		fmt.Println("credential.createCredential: Error building POST body json", err)
 		return 0, err
 	}
 
 	// Create HTTP request
 	req, err := http.NewRequest("POST", "https://api.brivo.com/v1/api/credentials", bytes.NewBuffer(bytesMessage))
 	if err != nil {
-		log.Println("credential.createCredential: Error creating HTTP request", err)
+		fmt.Println("credential.createCredential: Error creating HTTP request", err)
 		return 0, err
 	}
 	req.Header.Add("Content-Type", "application/json")
@@ -64,7 +64,7 @@ func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken st
 		// If the credential already exists, return the credential ID
 		// so that we can still create a new user
 		if err.Code == 400 && strings.Contains(err.Body["message"].(string), "Duplicate Credential Found") {
-			log.Println("Credential already exists, continue.")
+			fmt.Println("Credential already exists, continue.")
 			return cred.CredentialFormat.ID, nil
 		}
 	}
