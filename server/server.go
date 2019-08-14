@@ -67,8 +67,11 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 		h.Write(body)
 		sha := "sha256=" + hex.EncodeToString(h.Sum(nil)) // prepend sha256= to the encoded signature
 
+		fmt.Println(sha)
+
 		// Check for X-Mindbody-Signature header and validate against encoded request body
 		mbSignature := req.Header.Get("X-Mindbody-Signature")
+		fmt.Println(mbSignature)
 		if mbSignature == "" || mbSignature != sha {
 			fmt.Println("server.userHandler: X-Mindbody-Signature is not present or could not be validated")
 			rw.WriteHeader(http.StatusForbidden)
@@ -78,7 +81,6 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 
 	// Build request data into Event model
 	var ev models.Event
-	fmt.Println(string(body))
 	if err = json.Unmarshal(body, &ev); err != nil {
 		fmt.Println("server.userHandler: Error unmarshalling json", err)
 		rw.WriteHeader(http.StatusBadRequest)
