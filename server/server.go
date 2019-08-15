@@ -11,6 +11,7 @@ package server
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -63,11 +64,13 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	// Validate that the request came from MINDBODY
 	if !config.Debug {
 		// Encode the request body using HMAC-SHA-256 and MINDBODY messageSignatureKey
-		h := hmac.New(sha256.New, []byte(config.MindbodyMessageSignatureKey))
+		key, _ := hex.DecodeString(config.MindbodyMessageSignatureKey)
+		h := hmac.New(sha256.New, key)
 		h.Write(body)
-		sha := "sha256=" + hex.EncodeToString(h.Sum(nil)) // prepend sha256= to the encoded signature
+		sha := "sha256=" + base64.StdEncoding.EncodeToString(h.Sum(nil)) // prepend sha256= to the encoded signature
 
 		fmt.Println("body", string(body))
+		fmt.Println("body bytes", body)
 		fmt.Println("sha256", sha)
 
 		// Check for X-Mindbody-Signature header and validate against encoded request body
