@@ -12,11 +12,11 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/christophertino/mindbody-brivo/models"
 	"github.com/gorilla/mux"
@@ -63,23 +63,9 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 
 	// Validate that the request came from MINDBODY
 	if !config.Debug {
-		key := hex.EncodeToString([]byte(config.MindbodyMessageSignatureKey)) // Convert hmac key to hex
-		// Encode the request body using HMAC-SHA-256 and MINDBODY messageSignatureKey
-		mac := hmac.New(sha256.New, []byte(key))
-		mac.Write(body)
-		sha := "sha256=" + base64.StdEncoding.EncodeToString(mac.Sum(nil)) // prepend sha256= to the encoded signature
-
-		fmt.Println("body", string(body))
-		fmt.Println("body bytes", body)
-		fmt.Println("sha256", sha)
-
-		// Check for X-Mindbody-Signature header and validate against encoded request body
-		mbSignature := req.Header.Get("X-Mindbody-Signature")
-		fmt.Println("X-Mindbody-Signature", mbSignature)
-		if mbSignature == "" || mbSignature != sha {
+		if !validateHeader(body, config, req) {
 			fmt.Println("server.userHandler: X-Mindbody-Signature is not present or could not be validated")
-			// rw.WriteHeader(http.StatusForbidden)
-			rw.WriteHeader(http.StatusNoContent)
+			rw.WriteHeader(http.StatusForbidden)
 			return
 		}
 	}
@@ -112,4 +98,21 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	default:
 		fmt.Printf("server.userHandler: EventID %s not found\n", ev.EventID)
 	}
+}
+
+// Check for X-Mindbody-Signature header and validate against encoded request body
+func validateHeader(body []byte, config *models.Config, req *http.Request) bool {
+	// Remove prepended "sha256=" from header string
+	mbSignature := strings.Replace(req.Header.Get("X-Mindbody-Signature"), "sha256=", "", 1)
+	if mbSignature != "" {
+		// Encode the request body using HMAC-SHA256 and MINDBODY messageSignatureKey
+		mac := hmac.New(sha256.New, []byte(config.MindbodyMessageSignatureKey))
+		mac.Write(body)
+		hash := mac.Sum(nil) // hexidecimal hash
+
+		// Decode the MB header
+		decodedHeader, _ := base64.StdEncoding.DecodeString(mbSignature)
+		return hmac.Equal(hash, decodedHeader)
+	}
+	return false
 }
