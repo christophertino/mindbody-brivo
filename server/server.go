@@ -69,6 +69,8 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 		mac.Write(body)
 		sha := "sha256=" + base64.StdEncoding.EncodeToString(mac.Sum(nil)) // prepend sha256= to the encoded signature
 
+		fmt.Println("body", string(body))
+		fmt.Println("body bytes", body)
 		fmt.Println("sha256", sha)
 
 		// Check for X-Mindbody-Signature header and validate against encoded request body
