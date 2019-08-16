@@ -14,7 +14,7 @@ import "time"
 type Event struct {
 	MessageID                        string    `json:"messageId"`
 	EventID                          string    `json:"eventId"`
-	EventSchemaVersion               int       `json:"eventSchemaVersion"`
+	EventSchemaVersion               float64   `json:"eventSchemaVersion"`
 	EventInstanceOriginationDateTime time.Time `json:"eventInstanceOriginationDateTime"`
 	EventData                        userData  `json:"eventData"`
 }
