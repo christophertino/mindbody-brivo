@@ -11,11 +11,12 @@ package server
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/christophertino/mindbody-brivo/models"
 	"github.com/gorilla/mux"
@@ -62,14 +63,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 
 	// Validate that the request came from MINDBODY
 	if !config.Debug {
-		// Encode the request body using HMAC-SHA-256 and MINDBODY messageSignatureKey
-		h := hmac.New(sha256.New, []byte(config.MindbodyMessageSignatureKey))
-		h.Write(body)
-		sha := "sha256=" + hex.EncodeToString(h.Sum(nil)) // prepend sha256= to the encoded signature
-
-		// Check for X-Mindbody-Signature header and validate against encoded request body
-		mbSignature := req.Header.Get("X-Mindbody-Signature")
-		if mbSignature == "" || mbSignature != sha {
+		if !validateHeader(body, config, req) {
 			fmt.Println("server.userHandler: X-Mindbody-Signature is not present or could not be validated")
 			rw.WriteHeader(http.StatusForbidden)
 			return
@@ -104,4 +98,21 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	default:
 		fmt.Printf("server.userHandler: EventID %s not found\n", ev.EventID)
 	}
+}
+
+// Check for X-Mindbody-Signature header and validate against encoded request body
+func validateHeader(body []byte, config *models.Config, req *http.Request) bool {
+	// Remove prepended "sha256=" from header string
+	mbSignature := strings.Replace(req.Header.Get("X-Mindbody-Signature"), "sha256=", "", 1)
+	if mbSignature != "" {
+		// Encode the request body using HMAC-SHA256 and MINDBODY messageSignatureKey
+		mac := hmac.New(sha256.New, []byte(config.MindbodyMessageSignatureKey))
+		mac.Write(body)
+		hash := mac.Sum(nil) // hexidecimal hash
+
+		// Decode the MB header
+		decodedHeader, _ := base64.StdEncoding.DecodeString(mbSignature)
+		return hmac.Equal(hash, decodedHeader)
+	}
+	return false
 }
