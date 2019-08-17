@@ -1,10 +1,8 @@
-/**
- * Async Utils
- *
- * @project 	MINDBODY / Brivo OnAir Membership Sync
- * @author		Christopher Tino
- * @license		MPL 2.0
- */
+// Copyright 2019 Christopher Tino. All rights reserved.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License v. 2.0, which can be found in the LICENSE file.
+
+// Async Utils
 
 package utils
 
@@ -25,9 +23,8 @@ func (e *JSONError) Error() string {
 	return fmt.Sprintf("async.doRequest: Error code %d and output:\n%+v", e.Code, e.Body)
 }
 
-// DoRequest : Utility function for making and handling async requests
-// @param	http.Request
-// @param	output		pointer to structure that we will Unmarshall into
+// DoRequest : Utility function for making and handling async requests.
+// It accepts an http.Request and `output` as pointer to structure that will Unmarshall into.
 func DoRequest(req *http.Request, output interface{}) error {
 	// Proxy Debugging
 	// var PTransport = &http.Transport{Proxy: http.ProxyFromEnvironment}

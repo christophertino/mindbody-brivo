@@ -1,10 +1,8 @@
-/**
- * Brivo Data Model
- *
- * @project 	MINDBODY / Brivo OnAir Membership Sync
- * @author		Christopher Tino
- * @license		MPL 2.0
- */
+// Copyright 2019 Christopher Tino. All rights reserved.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License v. 2.0, which can be found in the LICENSE file.
+
+// Brivo Data Model
 
 package models
 
@@ -29,7 +27,7 @@ type Brivo struct {
 
 type brivoUser struct {
 	ID           int           `json:"id,omitempty"`
-	ExternalID   string        `json:"externalId"` // Barcode ID from MindBody to link accounts
+	ExternalID   string        `json:"externalId"` // Barcode ID from MINDBODY to link accounts
 	FirstName    string        `json:"firstName"`
 	MiddleName   string        `json:"middleName"`
 	LastName     string        `json:"lastName"`
@@ -86,15 +84,15 @@ func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error
 	return nil
 }
 
-// BuildBrivoUsers : Convert MB users to Brivo users
-func (brivo *Brivo) BuildBrivoUsers(mb MindBody, config Config, auth Auth) {
+// CreateUsers : Convert MB users to Brivo users and create on Brivo
+func (brivo *Brivo) CreateUsers(mb MindBody, config Config, auth Auth) {
 	var (
 		wg sync.WaitGroup
 		o  outputLog
 	)
 	o.failed = make(map[string]string)
 
-	// Map MindBody fields to Brivo
+	// Map MINDBODY fields to Brivo
 	for i := range mb.Clients {
 		var (
 			user      brivoUser
@@ -142,28 +140,28 @@ func (brivo *Brivo) BuildBrivoUsers(mb MindBody, config Config, auth Auth) {
 			}
 			credID, err := cred.createCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 			if err != nil {
-				fmt.Printf("brivo.BuildBrivoUsers: Error creating credential for user %s with error: %s. Skip to next user.\n", user.ExternalID, err)
+				fmt.Printf("brivo.CreateUsers: Error creating credential for user %s with error: %s. Skip to next user.\n", user.ExternalID, err)
 				o.failed[user.ExternalID] = "Create Credential"
 				return
 			}
 
 			// Create a new user
 			if err := u.createUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("brivo.BuildBrivoUsers: Error creating user %s with error: %s. Skip to next user.\n", user.ExternalID, err)
+				fmt.Printf("brivo.CreateUsers: Error creating user %s with error: %s. Skip to next user.\n", user.ExternalID, err)
 				o.failed[user.ExternalID] = "Create User"
 				return
 			}
 
 			// Assign credential to user
 			if err := u.assignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("brivo.BuildBrivoUsers: Error assigning credential to user %s with error: %s. Skip to next user.\n", user.ExternalID, err)
+				fmt.Printf("brivo.CreateUsers: Error assigning credential to user %s with error: %s. Skip to next user.\n", user.ExternalID, err)
 				o.failed[user.ExternalID] = "Assign Credential"
 				return
 			}
 
 			// Assign user to group
 			if err := u.assignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("brivo.BuildBrivoUsers: Error assigning user %s to group with error: %s. Skip to next user.\n", user.ExternalID, err)
+				fmt.Printf("brivo.CreateUsers: Error assigning user %s to group with error: %s. Skip to next user.\n", user.ExternalID, err)
 				o.failed[user.ExternalID] = "Assign Group"
 				return
 			}
@@ -244,6 +242,25 @@ func (user *brivoUser) assignUserGroup(groupID int, brivoAPIKey string, brivoAcc
 
 	var r map[string]interface{}
 	if err = async.DoRequest(req, &r); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetUserByID : Retrieves a Brivo user by their ExternalID value
+func (brivo *Brivo) GetUserByID(externalID int, brivoAPIKey string, brivoAccessToken string) error {
+	// Create HTTP request
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/users/%s/external", string(externalID)), nil)
+	if err != nil {
+		fmt.Println("brivo.assignUserCredential: Error creating HTTP request", err)
+		return err
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
+	req.Header.Add("api-key", brivoAPIKey)
+
+	if err = async.DoRequest(req, &brivo); err != nil {
 		return err
 	}
 

@@ -1,10 +1,8 @@
-/**
- * Launch application API to consume MINDBODY webhooks
- *
- * @project 	MINDBODY / Brivo OnAir Membership Sync
- * @author		Christopher Tino
- * @license		MPL 2.0
- */
+// Copyright 2019 Christopher Tino. All rights reserved.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License v. 2.0, which can be found in the LICENSE file.
+
+// Launch application API to consume MINDBODY webhooks
 
 package server
 
@@ -63,7 +61,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 
 	// Validate that the request came from MINDBODY
 	if !config.Debug {
-		if !validateHeader(body, config, req) {
+		if !validateHeader(body, *config, req) {
 			fmt.Println("server.userHandler: X-Mindbody-Signature is not present or could not be validated")
 			rw.WriteHeader(http.StatusForbidden)
 			return
@@ -71,8 +69,8 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	}
 
 	// Build request data into Event model
-	var ev models.Event
-	if err = json.Unmarshal(body, &ev); err != nil {
+	var event models.Event
+	if err = json.Unmarshal(body, &event); err != nil {
 		fmt.Println("server.userHandler: Error unmarshalling json", err)
 		rw.WriteHeader(http.StatusBadRequest)
 		return
@@ -84,10 +82,18 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusNoContent)
 
+	// Generate AUTH tokens
+	var auth models.Auth
+	if err = auth.Authenticate(config); err != nil {
+		fmt.Println("server.userHandler: Error generating AUTH tokens", err)
+		return
+	}
+
 	// Route event to correct action
-	switch ev.EventID {
+	switch event.EventID {
 	case "client.created":
 		// Create a new user
+		event.CreateUser(*config, auth)
 		fmt.Println("client.created")
 	case "client.updated":
 		// Update an existing user
@@ -96,12 +102,12 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 		// Deactivate an existing user (credential and account)
 		fmt.Println("client.deactivated")
 	default:
-		fmt.Printf("server.userHandler: EventID %s not found\n", ev.EventID)
+		fmt.Printf("server.userHandler: EventID %s not found\n", event.EventID)
 	}
 }
 
 // Check for X-Mindbody-Signature header and validate against encoded request body
-func validateHeader(body []byte, config *models.Config, req *http.Request) bool {
+func validateHeader(body []byte, config models.Config, req *http.Request) bool {
 	// Remove prepended "sha256=" from header string
 	mbSignature := strings.Replace(req.Header.Get("X-Mindbody-Signature"), "sha256=", "", 1)
 	if mbSignature != "" {

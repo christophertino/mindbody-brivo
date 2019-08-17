@@ -1,14 +1,14 @@
-/**
- * Webhook Event Data Model
- *
- * @project 	MINDBODY / Brivo OnAir Membership Sync
- * @author		Christopher Tino
- * @license		MPL 2.0
- */
+// Copyright 2019 Christopher Tino. All rights reserved.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License v. 2.0, which can be found in the LICENSE file.
+
+// Webhook Event Data Model
 
 package models
 
-import "time"
+import (
+	"time"
+)
 
 // Event : Webhook event data
 type Event struct {
@@ -31,4 +31,35 @@ type userData struct {
 	MobilePhone      string    `json:"mobilePhone"`
 	HomePhone        string    `json:"homePhone"`
 	WorkPhone        string    `json:"workPhone"`
+}
+
+var (
+	mb    MindBody
+	brivo Brivo
+)
+
+// CreateUser : Webhook event handler for client.created
+func (event *Event) CreateUser(config Config, auth Auth) error {
+	// check if user exists on Brivo
+	brivo.GetUserByID(event.EventData.ClientUniqueID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+	// https://apidocs.brivo.com/#api-User-RetrieveUserByExternal
+	//if exists, send to our update function (below)
+	//if new, call series of create functions in Brivo
+	return nil
+}
+
+// UpdateUser : Webhook event handler for client.updated
+func (event *Event) UpdateUser(config Config, auth Auth) error {
+	// first query the user on brivo by external ID to get the Brivo ID
+	// https://apidocs.brivo.com/#api-User-RetrieveUserByExternal
+	// then update https://apidocs.brivo.com/#api-User-UpdateUser
+	return nil
+}
+
+// DeactivateUser : Webhook event handler for client.deactivated
+func (event *Event) DeactivateUser(config Config, auth Auth) error {
+	// Put brivo user in suspended status
+	//https://apidocs.brivo.com/#api-User-RetrieveUserByExternal
+	//https://apidocs.brivo.com/#api-User-ToggleSuspendedStatus
+	return nil
 }

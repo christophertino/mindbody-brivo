@@ -1,10 +1,8 @@
-/**
- * Configuration Data Model
- *
- * @project 	MINDBODY / Brivo OnAir Membership Sync
- * @author		Christopher Tino
- * @license		MPL 2.0
- */
+// Copyright 2019 Christopher Tino. All rights reserved.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License v. 2.0, which can be found in the LICENSE file.
+
+// Configuration Data Model
 
 package models
 

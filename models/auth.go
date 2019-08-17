@@ -1,10 +1,8 @@
-/**
- * Auth Data Model
- *
- * @project 	MINDBODY / Brivo OnAir Membership Sync
- * @author		Christopher Tino
- * @license		MPL 2.0
- */
+// Copyright 2019 Christopher Tino. All rights reserved.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License v. 2.0, which can be found in the LICENSE file.
+
+// Handles AUTH tokens for MINDBODY and Brivo
 
 package models
 
@@ -37,7 +35,43 @@ type mbToken struct {
 	AccessToken string `json:"AccessToken"`
 }
 
-// Retrieve a MindBody Access Token
+// Authenticate : Fetch access tokens for MINDBODY and Brivo
+func (auth *Auth) Authenticate(config *Config) error {
+	doneCh := make(chan bool)
+	errCh := make(chan error)
+
+	// Fetch MINDBODY token
+	go func() {
+		if err := auth.MindBodyToken.GetMindBodyToken(*config); err != nil {
+			errCh <- err
+		} else {
+			doneCh <- true
+		}
+	}()
+
+	//Fetch Brivo token
+	go func() {
+		if err := auth.BrivoToken.GetBrivoToken(config); err != nil { // Pass `config` by reference
+			errCh <- err
+		} else {
+			doneCh <- true
+		}
+	}()
+
+	for i := 0; i < 2; i++ {
+		select {
+		case err := <-errCh:
+			return fmt.Errorf("auth.Authenticate: Token fetch failed: %g", err)
+		case <-doneCh:
+			fmt.Println("auth.Authenticate: Token fetch success!")
+		}
+	}
+
+	// fmt.Printf("AUTH Model: %+v\n", auth)
+	return nil
+}
+
+// Retrieve a MINDBODY Access Token
 func (token *mbToken) GetMindBodyToken(config Config) error {
 	// Build request body JSON
 	body := map[string]string{
@@ -67,7 +101,8 @@ func (token *mbToken) GetMindBodyToken(config Config) error {
 	return nil
 }
 
-// Retrieve a Brivo Access Token using password grant type
+// Retrieve a Brivo Access Token using password grant type.
+// It accepts `config` as a reference for updating via BuildClientCredentials().
 func (token *brivoToken) GetBrivoToken(config *Config) error {
 	// Create HTTP request
 	req, err := http.NewRequest("POST", fmt.Sprintf("https://auth.brivo.com/oauth/token?grant_type=password&username=%s&password=%s", config.BrivoUsername, config.BrivoPassword), nil)
