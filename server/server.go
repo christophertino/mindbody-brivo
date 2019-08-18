@@ -93,13 +93,21 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	switch event.EventID {
 	case "client.created":
 		// Create a new user
-		event.CreateUser(*config, auth)
-		fmt.Println("client.created")
+		if err := event.CreateUser(*config, auth); err != nil {
+			fmt.Printf("Error creating new Brivo client with MINDBODY ID %d\n%s", event.EventData.ClientUniqueID, err)
+			break
+		}
+		fmt.Println("Client created successfully")
 	case "client.updated":
 		// Update an existing user
-		fmt.Println("client.updated")
+		if err := event.UpdateUser(*config, auth); err != nil {
+			fmt.Printf("Error updating Brivo client with MINDBODY ID %d\n%s", event.EventData.ClientUniqueID, err)
+			break
+		}
+		fmt.Println("Client updated successfully")
 	case "client.deactivated":
 		// Deactivate an existing user (credential and account)
+		event.DeactivateUser(*config, auth)
 		fmt.Println("client.deactivated")
 	default:
 		fmt.Printf("server.userHandler: EventID %s not found\n", event.EventID)

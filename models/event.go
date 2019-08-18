@@ -7,7 +7,10 @@
 package models
 
 import (
+	"fmt"
 	"time"
+
+	async "github.com/christophertino/mindbody-brivo/utils"
 )
 
 // Event : Webhook event data
@@ -40,9 +43,7 @@ var (
 
 // CreateUser : Webhook event handler for client.created
 func (event *Event) CreateUser(config Config, auth Auth) error {
-	// check if user exists on Brivo
-	brivo.GetUserByID(event.EventData.ClientUniqueID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-	// https://apidocs.brivo.com/#api-User-RetrieveUserByExternal
+	// check if user already exists on Brivo
 	//if exists, send to our update function (below)
 	//if new, call series of create functions in Brivo
 	return nil
@@ -50,9 +51,23 @@ func (event *Event) CreateUser(config Config, auth Auth) error {
 
 // UpdateUser : Webhook event handler for client.updated
 func (event *Event) UpdateUser(config Config, auth Auth) error {
-	// first query the user on brivo by external ID to get the Brivo ID
-	// https://apidocs.brivo.com/#api-User-RetrieveUserByExternal
-	// then update https://apidocs.brivo.com/#api-User-UpdateUser
+	// Query the user data on Brivo using the MINDBODY ExternalID
+	err := brivo.GetUserByID(event.EventData.ClientID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+	switch err := err.(type) {
+	case *async.JSONError:
+		if err.Code == 404 {
+			// user does not exist
+			fmt.Println("event.UpdateUser: Brivo user does not exist. Creating new user...")
+			event.CreateUser(config, auth)
+			return nil
+		}
+	default:
+		return err
+	}
+
+	// Build event data into Brivo user
+	// Check diff to see if update is needed?
+	// Update https://apidocs.brivo.com/#api-User-UpdateUser
 	return nil
 }
 

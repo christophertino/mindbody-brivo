@@ -24,7 +24,7 @@ func (e *JSONError) Error() string {
 }
 
 // DoRequest : Utility function for making and handling async requests.
-// It accepts an http.Request and `output` as pointer to structure that will Unmarshall into.
+// It accepts an http.Request and `output` as pointer to structure that will Unmarshal into.
 func DoRequest(req *http.Request, output interface{}) error {
 	// Proxy Debugging
 	// var PTransport = &http.Transport{Proxy: http.ProxyFromEnvironment}
@@ -55,7 +55,7 @@ func DoRequest(req *http.Request, output interface{}) error {
 		return &JSONError{res.StatusCode, errorOut}
 	}
 
-	// Don't attempt to unmarshall 204's
+	// Don't attempt to Unmarshal 204's
 	if res.StatusCode == 204 {
 		return nil
 	}
