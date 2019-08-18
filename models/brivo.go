@@ -249,9 +249,9 @@ func (user *brivoUser) assignUserGroup(groupID int, brivoAPIKey string, brivoAcc
 }
 
 // GetUserByID : Retrieves a Brivo user by their ExternalID value
-func (brivo *Brivo) GetUserByID(externalID int, brivoAPIKey string, brivoAccessToken string) error {
+func (brivo *Brivo) GetUserByID(externalID string, brivoAPIKey string, brivoAccessToken string) error {
 	// Create HTTP request
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/users/%s/external", string(externalID)), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/users/%s/external", externalID), nil)
 	if err != nil {
 		fmt.Println("brivo.assignUserCredential: Error creating HTTP request", err)
 		return err
