@@ -53,7 +53,7 @@ func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 		// Create HTTP request
 		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.mindbodyonline.com/public/v6/client/clients?limit=%d&offset=%d", limit, count), nil)
 		if err != nil {
-			fmt.Println("mindbody.GetClients: Error creating HTTP request", err)
+			fmt.Println("MindBody.GetClients: Error creating HTTP request", err)
 			return err
 		}
 		req.Header.Add("Content-Type", "application/json")

@@ -85,7 +85,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	// Generate AUTH tokens
 	var auth models.Auth
 	if err = auth.Authenticate(config); err != nil {
-		fmt.Println("server.userHandler: Error generating AUTH tokens", err)
+		fmt.Println("server.userHandler: Error generating AUTH tokens\n", err)
 		return
 	}
 
@@ -122,7 +122,7 @@ func validateHeader(body []byte, config models.Config, req *http.Request) bool {
 		// Encode the request body using HMAC-SHA256 and MINDBODY messageSignatureKey
 		mac := hmac.New(sha256.New, []byte(config.MindbodyMessageSignatureKey))
 		mac.Write(body)
-		hash := mac.Sum(nil) // hexidecimal hash
+		hash := mac.Sum(nil) // hexadecimal hash
 
 		// Decode the MB header
 		decodedHeader, _ := base64.StdEncoding.DecodeString(mbSignature)
