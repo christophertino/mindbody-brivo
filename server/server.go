@@ -106,9 +106,12 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 		}
 		fmt.Println("Client updated successfully")
 	case "client.deactivated":
-		// Deactivate an existing user (credential and account)
-		event.DeactivateUser(*config, auth)
-		fmt.Println("client.deactivated")
+		// Suspend an existing user
+		if err := event.DeactivateUser(*config, auth); err != nil {
+			fmt.Printf("Error deactivating Brivo client with MINDBODY ID %d\n%s", event.EventData.ClientUniqueID, err)
+			break
+		}
+		fmt.Println("Client deactivated successfully")
 	default:
 		fmt.Printf("server.userHandler: EventID %s not found\n", event.EventID)
 	}
