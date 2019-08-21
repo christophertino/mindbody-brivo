@@ -11,6 +11,7 @@ import (
 	"time"
 
 	async "github.com/christophertino/mindbody-brivo/utils"
+	"github.com/google/go-cmp/cmp"
 )
 
 // Event : Webhook event data
@@ -24,21 +25,22 @@ type Event struct {
 
 type userData struct {
 	SiteID           int       `json:"siteId"`
-	ClientID         string    `json:"clientId"`
-	ClientUniqueID   int       `json:"clientUniqueId"`
+	ClientID         string    `json:"clientId"`       // The client’s public ID
+	ClientUniqueID   int       `json:"clientUniqueId"` // The client’s guaranteed unique ID
 	CreationDateTime time.Time `json:"creationDateTime"`
-	Status           string    `json:"status"`
 	FirstName        string    `json:"firstName"`
 	LastName         string    `json:"lastName"`
 	Email            string    `json:"email"`
 	MobilePhone      string    `json:"mobilePhone"`
 	HomePhone        string    `json:"homePhone"`
 	WorkPhone        string    `json:"workPhone"`
+	Status           string    `json:"status"` // Declined,Non-Member,Active,Expired,Suspended,Terminated
 }
 
 var (
-	mb    MindBody
-	brivo Brivo
+	mb        MindBody
+	brivo     Brivo
+	brivoUser BrivoUser
 )
 
 // CreateUser : Webhook event handler for client.created
@@ -52,23 +54,32 @@ func (event *Event) CreateUser(config Config, auth Auth) error {
 // UpdateUser : Webhook event handler for client.updated
 func (event *Event) UpdateUser(config Config, auth Auth) error {
 	// Query the user data on Brivo using the MINDBODY ExternalID
-	err := brivo.GetUserByID(event.EventData.ClientID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+	var existingUser BrivoUser
+	err := existingUser.GetUserByID(event.EventData.ClientID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	switch err := err.(type) {
+	// Handle specific error codes from the API server
 	case *async.JSONError:
+		// user does not exist
 		if err.Code == 404 {
-			// user does not exist
-			fmt.Println("event.UpdateUser: Brivo user does not exist. Creating new user...")
+			fmt.Println("Event.UpdateUser: Brivo user does not exist. Creating new user...")
 			event.CreateUser(config, auth)
 			return nil
 		}
-	default:
-		return err
+	case nil:
+		// Build event data into Brivo user
+		brivoUser.BuildUser(event.EventData, existingUser.ID)
+		// Check diff to see if update is needed
+		if cmp.Equal(existingUser, brivoUser) {
+			brivoUser.UpdateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+		} else {
+			fmt.Printf("Event.UpdateUser: UserID %s does not have any properties to update.\n", brivoUser.ExternalID)
+		}
+
+		return nil
 	}
 
-	// Build event data into Brivo user
-	// Check diff to see if update is needed?
-	// Update https://apidocs.brivo.com/#api-User-UpdateUser
-	return nil
+	// General error
+	return fmt.Errorf("Event.UpdateUser: Error %s", err)
 }
 
 // DeactivateUser : Webhook event handler for client.deactivated

@@ -42,7 +42,7 @@ func (config *Config) GetConfig() {
 	if os.Getenv("ENV") != "staging" && os.Getenv("ENV") != "production" {
 		// Load local env file
 		if err := godotenv.Load(); err != nil {
-			log.Fatalln("config.GetConfig: Error loading .env file")
+			log.Fatalln("Config.GetConfig: Error loading .env file")
 		}
 	}
 

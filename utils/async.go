@@ -52,6 +52,7 @@ func DoRequest(req *http.Request, output interface{}) error {
 		if err = json.Unmarshal(data, &errorOut); err != nil {
 			return err
 		}
+		// Use JSONError type so we can handle specific error codes from the API server
 		return &JSONError{res.StatusCode, errorOut}
 	}
 
