@@ -307,8 +307,15 @@ func (user *BrivoUser) GetUserByID(externalID string, brivoAPIKey string, brivoA
 
 // UpdateUser : Update an existing Brivo user
 func (user *BrivoUser) UpdateUser(brivoAPIKey string, brivoAccessToken string) error {
+	// Build request body JSON
+	bytesMessage, err := json.Marshal(user)
+	if err != nil {
+		fmt.Println("BrivoUser.UpdateUser: Error building POST body json", err)
+		return err
+	}
+
 	// Create HTTP request
-	req, err := http.NewRequest("PUT", fmt.Sprintf("https://api.brivo.com/v1/api/users/%d", user.ID), nil)
+	req, err := http.NewRequest("PUT", fmt.Sprintf("https://api.brivo.com/v1/api/users/%d", user.ID), bytes.NewBuffer(bytesMessage))
 	if err != nil {
 		fmt.Println("BrivoUser.UpdateUser: Error creating HTTP request", err)
 		return err
@@ -317,7 +324,35 @@ func (user *BrivoUser) UpdateUser(brivoAPIKey string, brivoAccessToken string) e
 	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
 	req.Header.Add("api-key", brivoAPIKey)
 
-	if err = async.DoRequest(req, &user); err != nil {
+	var r map[string]interface{}
+	if err = async.DoRequest(req, &r); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeactivateUser : Mark the Brivo user as 'suspended'
+func (user *BrivoUser) DeactivateUser(brivoAPIKey string, brivoAccessToken string) error {
+	// Build request body JSON
+	bytesMessage, err := json.Marshal(map[string]bool{"suspended": true})
+	if err != nil {
+		fmt.Println("BrivoUser.DeactivateUser: Error building POST body json", err)
+		return err
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequest("PUT", fmt.Sprintf("https://api.brivo.com/v1/api/users/%d/suspended", user.ID), bytes.NewBuffer(bytesMessage))
+	if err != nil {
+		fmt.Println("BrivoUser.DeactivateUser: Error creating HTTP request", err)
+		return err
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
+	req.Header.Add("api-key", brivoAPIKey)
+
+	var r map[string]interface{}
+	if err = async.DoRequest(req, &r); err != nil {
 		return err
 	}
 
