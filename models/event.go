@@ -70,10 +70,17 @@ func (event *Event) UpdateUser(config Config, auth Auth) error {
 		// Build event data into Brivo user
 		brivoUser.BuildUser(event.EventData, existingUser.ID)
 		// Check diff to see if update is needed
-		if cmp.Equal(existingUser, brivoUser) {
+		if !cmp.Equal(existingUser, brivoUser) {
 			if err := brivoUser.UpdateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				fmt.Printf("Event.UpdateUser: Error updating user %s\n", brivoUser.ExternalID)
 				return err
+			}
+			// Handle account re-activation
+			if existingUser.Suspended && !brivoUser.Suspended {
+				if err := brivoUser.ToggleSuspendedStatus(false, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+					fmt.Printf("Event.UpdateUser: Error re-activating user %s\n", brivoUser.ExternalID)
+					return err
+				}
 			}
 		} else {
 			return fmt.Errorf("Event.UpdateUser: UserID %s does not have any properties to update", brivoUser.ExternalID)
@@ -94,8 +101,8 @@ func (event *Event) DeactivateUser(config Config, auth Auth) error {
 		fmt.Printf("Event.DeactivateUser: Brivo user %s does not exist.\n", event.EventData.ClientID)
 		return err
 	}
-	// Put brivo user in suspended status
-	if err := brivoUser.DeactivateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+	// Put Brivo user in suspended status
+	if err := brivoUser.ToggleSuspendedStatus(true, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 		fmt.Printf("Event.DeactivateUser: Error deactivating user %s\n", brivoUser.ExternalID)
 		return err
 	}
