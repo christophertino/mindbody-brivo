@@ -329,13 +329,15 @@ func (user *BrivoUser) UpdateUser(brivoAPIKey string, brivoAccessToken string) e
 		return err
 	}
 
+	fmt.Printf("BrivoUser.UpdateUser: Brivo user %d updated successfully.\n", user.ID)
+
 	return nil
 }
 
-// DeactivateUser : Mark the Brivo user as 'suspended'
-func (user *BrivoUser) DeactivateUser(brivoAPIKey string, brivoAccessToken string) error {
+// ToggleSuspendedStatus : Update the suspended status of the user in Brivo
+func (user *BrivoUser) ToggleSuspendedStatus(suspended bool, brivoAPIKey string, brivoAccessToken string) error {
 	// Build request body JSON
-	bytesMessage, err := json.Marshal(map[string]bool{"suspended": true})
+	bytesMessage, err := json.Marshal(map[string]bool{"suspended": suspended})
 	if err != nil {
 		fmt.Println("BrivoUser.DeactivateUser: Error building POST body json", err)
 		return err
@@ -355,6 +357,8 @@ func (user *BrivoUser) DeactivateUser(brivoAPIKey string, brivoAccessToken strin
 	if err = async.DoRequest(req, &r); err != nil {
 		return err
 	}
+
+	fmt.Printf("BrivoUser.ToggleSuspendedStatus: User suspended status set to %b\n", suspended)
 
 	return nil
 }
