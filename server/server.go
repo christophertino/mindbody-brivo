@@ -21,8 +21,8 @@ import (
 	"github.com/urfave/negroni"
 )
 
-// Init : Initialize API routes
-func Init(config *models.Config) {
+// Launch : Start server and Initialize API routes
+func Launch(config *models.Config) {
 	router := mux.NewRouter()
 	// Use wrapper function here so that we can pass `config` to the handler
 	router.HandleFunc("/api/v1/user", func(rw http.ResponseWriter, req *http.Request) {
@@ -44,7 +44,7 @@ func Init(config *models.Config) {
 	server := negroni.New()
 	server.UseHandler(router)
 
-	fmt.Printf("Listening for webhook events at PORT %s\n", config.Port)
+	fmt.Printf("server.Launch: Listening for webhook events at PORT %s\n", config.Port)
 
 	http.ListenAndServe(":"+config.Port, server)
 }
@@ -82,10 +82,10 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusNoContent)
 
-	// Generate AUTH tokens
+	// Generate Brivo AUTH token. (MINDBODY token not needed)
 	var auth models.Auth
-	if err = auth.Authenticate(config); err != nil {
-		fmt.Println("server.userHandler: Error generating AUTH tokens\n", err)
+	if err = auth.BrivoToken.GetBrivoToken(config); err != nil {
+		fmt.Println("server.userHandler: Error generating Brivo AUTH token\n", err)
 		return
 	}
 
@@ -93,25 +93,25 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	switch event.EventID {
 	case "client.created":
 		// Create a new user
-		if err := event.CreateUser(*config, auth); err != nil {
-			fmt.Printf("Error creating new Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
+		if err := event.CreateOrUpdateUser(*config, auth); err != nil {
+			fmt.Printf("server.userHandler: Error creating new Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
 			break
 		}
-		fmt.Println("Client created successfully")
+		fmt.Println("server.userHandler: Client created successfully")
 	case "client.updated":
 		// Update an existing user
-		if err := event.UpdateUser(*config, auth); err != nil {
-			fmt.Printf("Error updating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
+		if err := event.CreateOrUpdateUser(*config, auth); err != nil {
+			fmt.Printf("server.userHandler: Error updating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
 			break
 		}
-		fmt.Println("Client updated successfully")
+		fmt.Println("server.userHandler: Client updated successfully")
 	case "client.deactivated":
 		// Suspend an existing user
 		if err := event.DeactivateUser(*config, auth); err != nil {
-			fmt.Printf("Error deactivating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
+			fmt.Printf("server.userHandler: Error deactivating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
 			break
 		}
-		fmt.Println("Client deactivated successfully")
+		fmt.Println("server.userHandler: Client deactivated successfully")
 	default:
 		fmt.Printf("server.userHandler: EventID %s not found\n", event.EventID)
 	}

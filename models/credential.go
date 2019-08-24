@@ -63,7 +63,10 @@ func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken st
 			fmt.Println("Credential.createCredential: Credential ID already exists, continue.")
 			return cred.CredentialFormat.ID, nil
 		}
+		// Server error
+		return 0, err
+	default:
+		// General error
+		return 0, err
 	}
-
-	return 0, err
 }

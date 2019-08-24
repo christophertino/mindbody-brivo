@@ -19,6 +19,6 @@ func main() {
 
 	// fmt.Printf("Config Model: %+v\n", config)
 
-	// Initialize API routes and listen for MINDBODY webhook events
-	server.Init(&config)
+	// Initialize server API routes and listen for MINDBODY webhook events
+	server.Launch(&config)
 }
