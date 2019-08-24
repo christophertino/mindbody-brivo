@@ -17,11 +17,13 @@ import (
 
 // Auth : Authentication tokens
 type Auth struct {
-	BrivoToken    brivoToken
+	BrivoToken    BrivoToken
 	MindBodyToken mbToken
 }
 
-type brivoToken struct {
+// BrivoToken : Brivo API Tokens. Valid until `ExpiresIn` and then
+// must be refreshed with `RefreshToken`
+type BrivoToken struct {
 	AccessToken  string `json:"access_token"`
 	TokenType    string `json:"token_type"`
 	RefreshToken string `json:"refresh_token"`
@@ -30,6 +32,7 @@ type brivoToken struct {
 	JTI          string `json:"jti"`
 }
 
+// MINDBODY access token. Valid for 7 days
 type mbToken struct {
 	TokenType   string `json:"TokenType"`
 	AccessToken string `json:"AccessToken"`
@@ -42,7 +45,7 @@ func (auth *Auth) Authenticate(config *Config) error {
 
 	// Fetch MINDBODY token
 	go func() {
-		if err := auth.MindBodyToken.GetMindBodyToken(*config); err != nil {
+		if err := auth.MindBodyToken.getMindBodyToken(*config); err != nil {
 			errCh <- err
 		} else {
 			doneCh <- true
@@ -72,7 +75,7 @@ func (auth *Auth) Authenticate(config *Config) error {
 }
 
 // Retrieve a MINDBODY Access Token
-func (token *mbToken) GetMindBodyToken(config Config) error {
+func (token *mbToken) getMindBodyToken(config Config) error {
 	// Build request body JSON
 	body := map[string]string{
 		"Username": config.MindbodyUsername,
@@ -80,14 +83,14 @@ func (token *mbToken) GetMindBodyToken(config Config) error {
 	}
 	bytesMessage, err := json.Marshal(body)
 	if err != nil {
-		fmt.Println("Auth.GetMindBodyToken: Error building POST body json", err)
+		fmt.Println("mbToken.getMindBodyToken: Error building POST body json", err)
 		return err
 	}
 
 	// Create HTTP request
 	req, err := http.NewRequest("POST", "https://api.mindbodyonline.com/public/v6/usertoken/issue", bytes.NewBuffer(bytesMessage))
 	if err != nil {
-		fmt.Println("Auth.GetMindBodyToken: Error creating HTTP request", err)
+		fmt.Println("mbToken.getMindBodyToken: Error creating HTTP request", err)
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
@@ -101,13 +104,13 @@ func (token *mbToken) GetMindBodyToken(config Config) error {
 	return nil
 }
 
-// Retrieve a Brivo Access Token using password grant type.
+// GetBrivoToken : Retrieve a Brivo Access Token using password grant type.
 // It accepts `config` as a reference for updating via BuildClientCredentials().
-func (token *brivoToken) GetBrivoToken(config *Config) error {
+func (token *BrivoToken) GetBrivoToken(config *Config) error {
 	// Create HTTP request
 	req, err := http.NewRequest("POST", fmt.Sprintf("https://auth.brivo.com/oauth/token?grant_type=password&username=%s&password=%s", config.BrivoUsername, config.BrivoPassword), nil)
 	if err != nil {
-		fmt.Println("Auth.GetBrivoToken: Error creating HTTP request", err)
+		fmt.Println("BrivoToken.GetBrivoToken: Error creating HTTP request", err)
 		return err
 	}
 	config.BuildClientCredentials()

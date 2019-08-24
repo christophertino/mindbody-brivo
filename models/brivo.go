@@ -97,8 +97,8 @@ func (brivo *Brivo) CreateUsers(mb MindBody, config Config, auth Auth) {
 	// Iterate over all MINDBODY users
 	for i := range mb.Clients {
 		var user BrivoUser
-		mbClient := mb.Clients[i]
-		user.BuildUser(mbClient, 0)
+		mbUser := mb.Clients[i]
+		user.BuildUser(mbUser)
 
 		// Make Brivo API calls
 		wg.Add(1)
@@ -114,100 +114,69 @@ func (brivo *Brivo) CreateUsers(mb MindBody, config Config, auth Auth) {
 			}
 			credID, err := cred.createCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 			if err != nil {
-				fmt.Printf("Brivo.CreateUsers: Error creating credential for user %s with error: %s. Skip to next user.\n", user.ExternalID, err)
-				o.failed[user.ExternalID] = "Create Credential"
+				fmt.Printf("Brivo.CreateUsers: Error creating credential for user %s with error: %s. Skip to next user.\n", u.ExternalID, err)
+				o.failed[u.ExternalID] = "Create Credential"
 				return
 			}
 
 			// Create a new user
 			if err := u.createUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("Brivo.CreateUsers: Error creating user %s with error: %s. Skip to next user.\n", user.ExternalID, err)
-				o.failed[user.ExternalID] = "Create User"
+				fmt.Printf("Brivo.CreateUsers: Error creating user %s with error: %s. Skip to next user.\n", u.ExternalID, err)
+				o.failed[u.ExternalID] = "Create User"
 				return
 			}
 
 			// Assign credential to user
 			if err := u.assignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("Brivo.CreateUsers: Error assigning credential to user %s with error: %s. Skip to next user.\n", user.ExternalID, err)
-				o.failed[user.ExternalID] = "Assign Credential"
+				fmt.Printf("Brivo.CreateUsers: Error assigning credential to user %s with error: %s. Skip to next user.\n", u.ExternalID, err)
+				o.failed[u.ExternalID] = "Assign Credential"
 				return
 			}
 
 			// Assign user to group
 			if err := u.assignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("Brivo.CreateUsers: Error assigning user %s to group with error: %s. Skip to next user.\n", user.ExternalID, err)
-				o.failed[user.ExternalID] = "Assign Group"
+				fmt.Printf("Brivo.CreateUsers: Error assigning user %s to group with error: %s. Skip to next user.\n", u.ExternalID, err)
+				o.failed[u.ExternalID] = "Assign Group"
 				return
 			}
 			o.success++
-			fmt.Printf("Successfully created Brivo user %s\n", user.ExternalID)
+			fmt.Printf("Brivo.CreateUsers: Successfully created Brivo user %s\n", u.ExternalID)
 		}(user)
 		wg.Wait()
 	}
 	o.printLog()
 }
 
-// BuildUser : Build a Brivo user from MINDBODY user data. The property brivoID
-// is only used with Event data if the user already exists on Brivo
-func (user *BrivoUser) BuildUser(userType interface{}, brivoID int) {
+// BuildUser : Build a Brivo user from MINDBODY user data
+func (user *BrivoUser) BuildUser(mbUser MindBodyUser) {
 	var (
 		userEmail email
 		userPhone phoneNumber
 	)
-	// handle both Event.userData and Mindbody.mbUser types
-	switch u := userType.(type) {
-	case mbUser:
-		user.ExternalID = u.ID // barcode ID
-		user.FirstName = u.FirstName
-		user.MiddleName = u.MiddleName
-		user.LastName = u.LastName
-		user.Suspended = (u.Active == false || u.Status != "Active")
-		if u.Email != "" {
-			userEmail.Address = u.Email
-			userEmail.EmailType = "home"
-			user.Emails = append(user.Emails, userEmail)
-		}
-		if u.HomePhone != "" {
-			userPhone.Number = u.HomePhone
-			userPhone.NumberType = "home"
-			user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
-		}
-		if u.MobilePhone != "" {
-			userPhone.Number = u.MobilePhone
-			userPhone.NumberType = "mobile"
-			user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
-		}
-		if u.WorkPhone != "" {
-			userPhone.Number = u.WorkPhone
-			userPhone.NumberType = "work"
-			user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
-		}
-	case userData:
-		user.ID = brivoID            // Brivo ID property retrieved from GetUserByID()
-		user.ExternalID = u.ClientID // The client’s public ID
-		user.FirstName = u.FirstName
-		user.LastName = u.LastName
-		user.Suspended = u.Status != "Active"
-		if u.Email != "" {
-			userEmail.Address = u.Email
-			userEmail.EmailType = "home"
-			user.Emails = append(user.Emails, userEmail)
-		}
-		if u.HomePhone != "" {
-			userPhone.Number = u.HomePhone
-			userPhone.NumberType = "home"
-			user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
-		}
-		if u.MobilePhone != "" {
-			userPhone.Number = u.MobilePhone
-			userPhone.NumberType = "mobile"
-			user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
-		}
-		if u.WorkPhone != "" {
-			userPhone.Number = u.WorkPhone
-			userPhone.NumberType = "work"
-			user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
-		}
+	user.ExternalID = mbUser.ID // barcode ID
+	user.FirstName = mbUser.FirstName
+	user.MiddleName = mbUser.MiddleName
+	user.LastName = mbUser.LastName
+	user.Suspended = (mbUser.Active == false || mbUser.Status != "Active")
+	if mbUser.Email != "" {
+		userEmail.Address = mbUser.Email
+		userEmail.EmailType = "home"
+		user.Emails = append(user.Emails, userEmail)
+	}
+	if mbUser.HomePhone != "" {
+		userPhone.Number = mbUser.HomePhone
+		userPhone.NumberType = "home"
+		user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
+	}
+	if mbUser.MobilePhone != "" {
+		userPhone.Number = mbUser.MobilePhone
+		userPhone.NumberType = "mobile"
+		user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
+	}
+	if mbUser.WorkPhone != "" {
+		userPhone.Number = mbUser.WorkPhone
+		userPhone.NumberType = "work"
+		user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
 	}
 }
 

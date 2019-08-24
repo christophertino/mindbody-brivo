@@ -21,10 +21,11 @@ type MindBody struct {
 		PageSize        int `json:"PageSize"`
 		TotalResults    int `json:"TotalResults"`
 	} `json:"PaginationResponse"`
-	Clients []mbUser `json:"Clients"`
+	Clients []MindBodyUser `json:"Clients"`
 }
 
-type mbUser struct {
+// MindBodyUser : MINDBODY user data
+type MindBodyUser struct {
 	ID          string `json:"Id"`       // Client’s barcode ID used for client-related API calls
 	UniqueID    int    `json:"UniqueId"` // Client’s unique system-generated ID
 	FirstName   string `json:"FirstName"`
@@ -75,4 +76,18 @@ func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 	}
 
 	return nil
+}
+
+// BuildUser : Build MINDBODY user from webhook EventUserData
+func (mbUser *MindBodyUser) BuildUser(eventData EventUserData) {
+	mbUser.ID = eventData.ClientID
+	mbUser.UniqueID = eventData.ClientUniqueID
+	mbUser.FirstName = eventData.FirstName
+	mbUser.MiddleName = eventData.MiddleName
+	mbUser.LastName = eventData.LastName
+	mbUser.Email = eventData.Email
+	mbUser.MobilePhone = eventData.MobilePhone
+	mbUser.HomePhone = eventData.HomePhone
+	mbUser.WorkPhone = eventData.WorkPhone
+	mbUser.Status = eventData.Status
 }

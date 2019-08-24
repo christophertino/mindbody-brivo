@@ -7,6 +7,7 @@
 package models
 
 import (
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -14,21 +15,23 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// Event : Webhook event data
+// Event : MINDBODY webhook event data
 type Event struct {
-	MessageID                        string    `json:"messageId"`
-	EventID                          string    `json:"eventId"`
-	EventSchemaVersion               float64   `json:"eventSchemaVersion"`
-	EventInstanceOriginationDateTime time.Time `json:"eventInstanceOriginationDateTime"`
-	EventData                        userData  `json:"eventData"`
+	MessageID                        string        `json:"messageId"`
+	EventID                          string        `json:"eventId"`
+	EventSchemaVersion               float64       `json:"eventSchemaVersion"`
+	EventInstanceOriginationDateTime time.Time     `json:"eventInstanceOriginationDateTime"`
+	EventData                        EventUserData `json:"eventData"`
 }
 
-type userData struct {
+// EventUserData : MINDBODY user data sent by webhook events
+type EventUserData struct {
 	SiteID           int       `json:"siteId"`
 	ClientID         string    `json:"clientId"`       // The client’s public ID
 	ClientUniqueID   int       `json:"clientUniqueId"` // The client’s guaranteed unique ID
 	CreationDateTime time.Time `json:"creationDateTime"`
 	FirstName        string    `json:"firstName"`
+	MiddleName       string    `json:"middleName"` // Currently not supported
 	LastName         string    `json:"lastName"`
 	Email            string    `json:"email"`
 	MobilePhone      string    `json:"mobilePhone"`
@@ -38,59 +41,87 @@ type userData struct {
 }
 
 var (
-	mb        MindBody
-	brivo     Brivo
 	brivoUser BrivoUser
+	mbUser    MindBodyUser
 )
 
-// CreateUser : Webhook event handler for client.created
-func (event *Event) CreateUser(config Config, auth Auth) error {
-	// check if user already exists on Brivo
-	//if exists, send to our update function (below)
-	//if new, call series of create functions in Brivo
-	return nil
-}
-
-// UpdateUser : Webhook event handler for client.updated
-func (event *Event) UpdateUser(config Config, auth Auth) error {
-	// Query the user data on Brivo using the MINDBODY ExternalID
+// CreateOrUpdateUser : Webhook event handler for client.updated and client.created
+func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
+	// Query the user on Brivo using the MINDBODY ExternalID
 	var existingUser BrivoUser
 	err := existingUser.GetUserByID(event.EventData.ClientID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	switch err := err.(type) {
-	// Handle specific error codes from the API server
-	case *async.JSONError:
-		// user does not exist
-		if err.Code == 404 {
-			fmt.Println("Event.UpdateUser: Brivo user does not exist. Creating new user...")
-			event.CreateUser(config, auth)
-			return nil
-		}
-		fmt.Printf("Event.UpdateUser error %s\n", err.Body)
+	// User already exists
 	case nil:
 		// Build event data into Brivo user
-		brivoUser.BuildUser(event.EventData, existingUser.ID)
+		mbUser.BuildUser(event.EventData)
+		brivoUser.BuildUser(mbUser)
+		// Update Brivo ID from existing user
+		brivoUser.ID = existingUser.ID
 		// Check diff to see if update is needed
 		if !cmp.Equal(existingUser, brivoUser) {
 			if err := brivoUser.UpdateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("Event.UpdateUser: Error updating user %s\n", brivoUser.ExternalID)
+				fmt.Printf("Event.CreateOrUpdateUser: Error updating user %s\n", brivoUser.ExternalID)
 				return err
 			}
 			// Handle account re-activation
 			if existingUser.Suspended && !brivoUser.Suspended {
 				if err := brivoUser.ToggleSuspendedStatus(false, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-					fmt.Printf("Event.UpdateUser: Error re-activating user %s\n", brivoUser.ExternalID)
+					fmt.Printf("Event.CreateOrUpdateUser: Error re-activating user %s\n", brivoUser.ExternalID)
 					return err
 				}
 			}
 		} else {
-			return fmt.Errorf("Event.UpdateUser: UserID %s does not have any properties to update", brivoUser.ExternalID)
+			return fmt.Errorf("Event.CreateOrUpdateUser: UserID %s does not have any properties to update", brivoUser.ExternalID)
 		}
-
 		return nil
-	}
+	// Handle specific error codes from the API server
+	case *async.JSONError:
+		// User does not exist
+		if err.Code == 404 {
+			// Build event data into Brivo user
+			mbUser.BuildUser(event.EventData)
+			brivoUser.BuildUser(mbUser)
+			// Create new Brivo credential for this user
+			cred := Credential{
+				CredentialFormat: CredentialFormat{
+					ID: 110, // Unknown Format
+				},
+				ReferenceID:       brivoUser.ExternalID, // barcode ID
+				EncodedCredential: hex.EncodeToString([]byte(brivoUser.ExternalID)),
+			}
+			credID, err := cred.createCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+			if err != nil {
+				fmt.Printf("Event.CreateOrUpdateUser: Error creating credential for user %s with error: %s.", brivoUser.ExternalID, err)
+				return err
+			}
 
+			// Create a new user
+			if err := brivoUser.createUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				fmt.Printf("Event.CreateOrUpdateUser: Error creating user %s with error: %s.", brivoUser.ExternalID, err)
+				return err
+			}
+
+			// Assign credential to user
+			if err := brivoUser.assignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				fmt.Printf("Event.CreateOrUpdateUser: Error assigning credential to user %s with error: %s.", brivoUser.ExternalID, err)
+				return err
+			}
+
+			// Assign user to group
+			if err := brivoUser.assignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				fmt.Printf("Event.CreateOrUpdateUser: Error assigning user %s to group with error: %s.", brivoUser.ExternalID, err)
+				return err
+			}
+
+			fmt.Printf("Event.CreateOrUpdateUser: Successfully created Brivo user %s\n", brivoUser.ExternalID)
+			return nil
+		}
+		return fmt.Errorf("Event.CreateOrUpdateUser: Error %s", err.Body)
 	// General error
-	return fmt.Errorf("Event.UpdateUser: Error %s", err)
+	default:
+		return fmt.Errorf("Event.CreateOrUpdateUser: Error %s", err)
+	}
 }
 
 // DeactivateUser : Webhook event handler for client.deactivated
