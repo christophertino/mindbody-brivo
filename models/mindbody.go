@@ -54,8 +54,7 @@ func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 		// Create HTTP request
 		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.mindbodyonline.com/public/v6/client/clients?limit=%d&offset=%d", limit, count), nil)
 		if err != nil {
-			fmt.Println("MindBody.GetClients: Error creating HTTP request", err)
-			return err
+			return fmt.Errorf("MindBody.GetClients: Error creating HTTP request.\n%s", err)
 		}
 		req.Header.Add("Content-Type", "application/json")
 		req.Header.Add("SiteId", config.MindbodySite)
@@ -78,8 +77,8 @@ func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 	return nil
 }
 
-// BuildUser : Build MINDBODY user from webhook EventUserData
-func (mbUser *MindBodyUser) BuildUser(eventData EventUserData) {
+// Build MINDBODY user from webhook EventUserData
+func (mbUser *MindBodyUser) buildUser(eventData EventUserData) {
 	mbUser.ID = eventData.ClientID
 	mbUser.UniqueID = eventData.ClientUniqueID
 	mbUser.FirstName = eventData.FirstName

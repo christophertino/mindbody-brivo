@@ -7,7 +7,6 @@
 package models
 
 import (
-	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -48,26 +47,24 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 	)
 	// Query the user on Brivo using the MINDBODY ExternalID
 	var existingUser BrivoUser
-	err := existingUser.GetUserByID(event.EventData.ClientID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+	err := existingUser.getUserByID(event.EventData.ClientID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	switch err := err.(type) {
 	// User already exists: Update user
 	case nil:
 		// Build event data into Brivo user
-		mbUser.BuildUser(event.EventData)
-		brivoUser.BuildUser(mbUser)
+		mbUser.buildUser(event.EventData)
+		brivoUser.buildUser(mbUser)
 		// Update Brivo ID from existing user
 		brivoUser.ID = existingUser.ID
 		// Check diff to see if update is needed
 		if !cmp.Equal(existingUser, brivoUser) {
-			if err := brivoUser.UpdateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("Event.CreateOrUpdateUser: Error updating user %s\n", brivoUser.ExternalID)
-				return err
+			if err := brivoUser.updateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				return fmt.Errorf("Event.CreateOrUpdateUser: Error updating user %s\n%s", brivoUser.ExternalID, err)
 			}
 			// Handle account re-activation
 			if existingUser.Suspended && !brivoUser.Suspended {
-				if err := brivoUser.ToggleSuspendedStatus(false, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-					fmt.Printf("Event.CreateOrUpdateUser: Error re-activating user %s\n", brivoUser.ExternalID)
-					return err
+				if err := brivoUser.toggleSuspendedStatus(false, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+					return fmt.Errorf("Event.CreateOrUpdateUser: Error re-activating user %s\n%s", brivoUser.ExternalID, err)
 				}
 			}
 		} else {
@@ -79,24 +76,19 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 		// User does not exist: Create new user
 		if err.Code == 404 {
 			// Build event data into Brivo user
-			mbUser.BuildUser(event.EventData)
-			brivoUser.BuildUser(mbUser)
-			// Create new Brivo credential for this user
-			cred := Credential{
-				CredentialFormat: CredentialFormat{
-					ID: 110, // Unknown Format
-				},
-				ReferenceID:       brivoUser.ExternalID, // barcode ID
-				EncodedCredential: hex.EncodeToString([]byte(brivoUser.ExternalID)),
-			}
-			credID, err := cred.createCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-			if err != nil {
-				return fmt.Errorf("Event.CreateOrUpdateUser: Error creating credential for user %s with error: %s", brivoUser.ExternalID, err)
-			}
+			mbUser.buildUser(event.EventData)
+			brivoUser.buildUser(mbUser)
 
 			// Create a new user
 			if err := brivoUser.createUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				return fmt.Errorf("Event.CreateOrUpdateUser: Error creating user %s with error: %s", brivoUser.ExternalID, err)
+			}
+
+			// Create new Brivo credential for this user
+			cred := generateCredential(brivoUser.ExternalID)
+			credID, err := cred.createCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+			if err != nil {
+				return fmt.Errorf("Event.CreateOrUpdateUser: Error creating credential for user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
 			// Assign credential to user
@@ -123,14 +115,12 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 func (event *Event) DeactivateUser(config Config, auth Auth) error {
 	// Query the user data on Brivo using the MINDBODY ExternalID
 	var brivoUser BrivoUser
-	if err := brivoUser.GetUserByID(event.EventData.ClientID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-		fmt.Printf("Event.DeactivateUser: Brivo user %s does not exist.\n", event.EventData.ClientID)
-		return err
+	if err := brivoUser.getUserByID(event.EventData.ClientID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+		return fmt.Errorf("Event.DeactivateUser: Brivo user %s does not exist.\n%s", event.EventData.ClientID, err)
 	}
 	// Put Brivo user in suspended status
-	if err := brivoUser.ToggleSuspendedStatus(true, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-		fmt.Printf("Event.DeactivateUser: Error deactivating user %s\n", brivoUser.ExternalID)
-		return err
+	if err := brivoUser.toggleSuspendedStatus(true, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+		return fmt.Errorf("Event.DeactivateUser: Error deactivating user %s\n%s", brivoUser.ExternalID, err)
 	}
 	return nil
 }

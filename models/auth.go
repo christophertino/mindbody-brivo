@@ -83,15 +83,13 @@ func (token *mbToken) getMindBodyToken(config Config) error {
 	}
 	bytesMessage, err := json.Marshal(body)
 	if err != nil {
-		fmt.Println("mbToken.getMindBodyToken: Error building POST body json", err)
-		return err
+		return fmt.Errorf("mbToken.getMindBodyToken: Error building POST body json.\n%s", err)
 	}
 
 	// Create HTTP request
 	req, err := http.NewRequest("POST", "https://api.mindbodyonline.com/public/v6/usertoken/issue", bytes.NewBuffer(bytesMessage))
 	if err != nil {
-		fmt.Println("mbToken.getMindBodyToken: Error creating HTTP request", err)
-		return err
+		return fmt.Errorf("mbToken.getMindBodyToken: Error creating HTTP request.\n%s", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("SiteId", config.MindbodySite)
@@ -110,10 +108,9 @@ func (token *BrivoToken) GetBrivoToken(config *Config) error {
 	// Create HTTP request
 	req, err := http.NewRequest("POST", fmt.Sprintf("https://auth.brivo.com/oauth/token?grant_type=password&username=%s&password=%s", config.BrivoUsername, config.BrivoPassword), nil)
 	if err != nil {
-		fmt.Println("BrivoToken.GetBrivoToken: Error creating HTTP request", err)
-		return err
+		return fmt.Errorf("BrivoToken.GetBrivoToken: Error creating HTTP request.\n%s", err)
 	}
-	config.BuildClientCredentials()
+	config.buildClientCredentials()
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Basic "+config.BrivoClientCredentials)
 	req.Header.Add("api-key", config.BrivoAPIKey)
