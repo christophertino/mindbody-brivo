@@ -63,8 +63,8 @@ func (config *Config) GetConfig() {
 	config.Port = getEnvStrings("PORT", "")
 }
 
-// BuildClientCredentials : Base64Encoded credentials for Authorization header
-func (config *Config) BuildClientCredentials() {
+// Base64Encoded credentials for Authorization header
+func (config *Config) buildClientCredentials() {
 	config.BrivoClientCredentials = base64.StdEncoding.EncodeToString([]byte(config.BrivoClientID + ":" + config.BrivoClientSecret))
 }
 

@@ -11,6 +11,7 @@ package models
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -21,6 +22,7 @@ import (
 
 // Credential : Brivo access credential
 type Credential struct {
+	ID                int              `json:"id,omitempty"`
 	CredentialFormat  CredentialFormat `json:"credentialFormat"`
 	ReferenceID       string           `json:"referenceId"`
 	EncodedCredential string           `json:"encodedCredential"`
@@ -31,20 +33,23 @@ type CredentialFormat struct {
 	ID int `json:"id"`
 }
 
+type credentialList struct {
+	Data  []Credential `json:"data"`
+	Count int          `json:"count"`
+}
+
 // Create new Brivo access credential. If the credential already exists, return the ID
 func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken string) (int, error) {
 	// Build request body JSON
 	bytesMessage, err := json.Marshal(cred)
 	if err != nil {
-		fmt.Println("Credential.createCredential: Error building POST body json", err)
-		return 0, err
+		return 0, fmt.Errorf("Credential.createCredential: Error building POST body json.\n%s", err)
 	}
 
 	// Create HTTP request
 	req, err := http.NewRequest("POST", "https://api.brivo.com/v1/api/credentials", bytes.NewBuffer(bytesMessage))
 	if err != nil {
-		fmt.Println("Credential.createCredential: Error creating HTTP request", err)
-		return 0, err
+		return 0, fmt.Errorf("Credential.createCredential: Error creating HTTP request\n%s", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
@@ -57,11 +62,10 @@ func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken st
 		// Return the new credential ID
 		return int(r["id"].(float64)), nil
 	case *async.JSONError:
-		// If the credential already exists, return the credential ID
-		// so that we can still create a new user
+		// If the credential already exists we need to fetch it's ID from Brivo
 		if err.Code == 400 && strings.Contains(err.Body["message"].(string), "Duplicate Credential Found") {
-			fmt.Println("Credential.createCredential: Credential ID already exists.")
-			return cred.CredentialFormat.ID, nil
+			fmt.Printf("Credential.createCredential: Credential ID %s already exists.\n", cred.ReferenceID)
+			return getCredential(cred.ReferenceID, brivoAPIKey, brivoAccessToken)
 		}
 		// Server error
 		return 0, err
@@ -69,4 +73,41 @@ func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken st
 		// General error
 		return 0, err
 	}
+}
+
+// Generate a credential that uses MINDBODY ExternalID
+// in an exceptable format for Brivo
+func generateCredential(externalID string) *Credential {
+	cred := Credential{
+		CredentialFormat: CredentialFormat{
+			ID: 110, // Unknown Format
+		},
+		ReferenceID:       externalID, // barcode ID
+		EncodedCredential: hex.EncodeToString([]byte(externalID)),
+	}
+	return &cred
+}
+
+func getCredential(externalID string, brivoAPIKey string, brivoAccessToken string) (int, error) {
+	// Create HTTP request
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/credentials?filter=reference_id__eq:%s", externalID), nil)
+	if err != nil {
+		return 0, fmt.Errorf("Credential.getCredential: Error creating HTTP request.\n%s", err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
+	req.Header.Add("api-key", brivoAPIKey)
+
+	var creds credentialList
+	if err = async.DoRequest(req, &creds); err != nil {
+		return 0, err
+	}
+
+	// The count should always be 1 or 0
+	if creds.Count > 0 {
+		fmt.Printf("Credential.getCredential: Successfully fetched Credential ID %d for Reference ID %s\n", creds.Data[0].ID, externalID)
+		return creds.Data[0].ID, nil
+	}
+
+	return 0, fmt.Errorf("Credential.getCredential: Credential with ReferenceID %s not found", externalID)
 }

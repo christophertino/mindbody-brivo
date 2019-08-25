@@ -42,8 +42,7 @@ func DoRequest(req *http.Request, output interface{}) error {
 	// Handle response
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println("async.doRequest: Error reading response", err)
-		return err
+		return fmt.Errorf("async.doRequest: Error reading response.\n%s", err)
 	}
 
 	// Check for error response
@@ -63,8 +62,7 @@ func DoRequest(req *http.Request, output interface{}) error {
 
 	// Build response into output *interface{}
 	if err = json.Unmarshal(data, output); err != nil {
-		fmt.Println("async.doRequest: Error unmarshalling json", err)
-		return err
+		return fmt.Errorf("async.doRequest: Error unmarshalling json.\n%s", err)
 	}
 
 	// fmt.Printf("Async Output: %+v\n", output)
