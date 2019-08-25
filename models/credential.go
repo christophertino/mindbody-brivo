@@ -60,7 +60,7 @@ func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken st
 		// If the credential already exists, return the credential ID
 		// so that we can still create a new user
 		if err.Code == 400 && strings.Contains(err.Body["message"].(string), "Duplicate Credential Found") {
-			fmt.Println("Credential.createCredential: Credential ID already exists, continue.")
+			fmt.Println("Credential.createCredential: Credential ID already exists.")
 			return cred.CredentialFormat.ID, nil
 		}
 		// Server error

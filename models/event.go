@@ -40,18 +40,17 @@ type EventUserData struct {
 	Status           string    `json:"status"` // Declined,Non-Member,Active,Expired,Suspended,Terminated
 }
 
-var (
-	brivoUser BrivoUser
-	mbUser    MindBodyUser
-)
-
 // CreateOrUpdateUser : Webhook event handler for client.updated and client.created
 func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
+	var (
+		brivoUser BrivoUser
+		mbUser    MindBodyUser
+	)
 	// Query the user on Brivo using the MINDBODY ExternalID
 	var existingUser BrivoUser
 	err := existingUser.GetUserByID(event.EventData.ClientID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	switch err := err.(type) {
-	// User already exists
+	// User already exists: Update user
 	case nil:
 		// Build event data into Brivo user
 		mbUser.BuildUser(event.EventData)
@@ -77,7 +76,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 		return nil
 	// Handle specific error codes from the API server
 	case *async.JSONError:
-		// User does not exist
+		// User does not exist: Create new user
 		if err.Code == 404 {
 			// Build event data into Brivo user
 			mbUser.BuildUser(event.EventData)
@@ -92,29 +91,25 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 			}
 			credID, err := cred.createCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 			if err != nil {
-				fmt.Printf("Event.CreateOrUpdateUser: Error creating credential for user %s with error: %s.", brivoUser.ExternalID, err)
-				return err
+				return fmt.Errorf("Event.CreateOrUpdateUser: Error creating credential for user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
 			// Create a new user
 			if err := brivoUser.createUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("Event.CreateOrUpdateUser: Error creating user %s with error: %s.", brivoUser.ExternalID, err)
-				return err
+				return fmt.Errorf("Event.CreateOrUpdateUser: Error creating user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
 			// Assign credential to user
 			if err := brivoUser.assignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("Event.CreateOrUpdateUser: Error assigning credential to user %s with error: %s.", brivoUser.ExternalID, err)
-				return err
+				return fmt.Errorf("Event.CreateOrUpdateUser: Error assigning credential to user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
 			// Assign user to group
 			if err := brivoUser.assignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("Event.CreateOrUpdateUser: Error assigning user %s to group with error: %s.", brivoUser.ExternalID, err)
-				return err
+				return fmt.Errorf("Event.CreateOrUpdateUser: Error assigning user %s to group with error: %s", brivoUser.ExternalID, err)
 			}
 
-			fmt.Printf("Event.CreateOrUpdateUser: Successfully created Brivo user %s\n", brivoUser.ExternalID)
+			fmt.Printf("Event.CreateOrUpdateUser: Successfully created Brivo user %s", brivoUser.ExternalID)
 			return nil
 		}
 		return fmt.Errorf("Event.CreateOrUpdateUser: Error %s", err.Body)
