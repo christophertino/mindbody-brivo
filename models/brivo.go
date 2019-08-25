@@ -327,7 +327,7 @@ func (user *BrivoUser) ToggleSuspendedStatus(suspended bool, brivoAPIKey string,
 		return err
 	}
 
-	fmt.Printf("BrivoUser.ToggleSuspendedStatus: User suspended status set to %b\n", suspended)
+	fmt.Printf("BrivoUser.ToggleSuspendedStatus: Brivo user %d suspended status set to %b\n", user.ID, suspended)
 
 	return nil
 }
