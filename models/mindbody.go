@@ -37,7 +37,6 @@ type MindBodyUser struct {
 	WorkPhone   string `json:"WorkPhone"`
 	Active      bool   `json:"Active"`
 	Status      string `json:"Status"` // Declined,Non-Member,Active,Expired,Suspended,Terminated
-	Action      string `json:"Action"` // None,Added,Updated,Failed,Removed
 }
 
 // GetClients : Build MINDBODY data model with Client data
@@ -88,5 +87,6 @@ func (mbUser *MindBodyUser) buildUser(eventData EventUserData) {
 	mbUser.MobilePhone = eventData.MobilePhone
 	mbUser.HomePhone = eventData.HomePhone
 	mbUser.WorkPhone = eventData.WorkPhone
+	mbUser.Active = (eventData.Status == "Active")
 	mbUser.Status = eventData.Status
 }

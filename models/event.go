@@ -66,9 +66,11 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 				if err := brivoUser.toggleSuspendedStatus(false, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 					return fmt.Errorf("Error re-activating user %s: %s", brivoUser.ExternalID, err)
 				}
+				fmt.Printf("Brivo user %s suspended status set to false\n", brivoUser.ExternalID)
 			}
+			fmt.Printf("Brivo user %s updated successfully.\n", brivoUser.ExternalID)
 		} else {
-			return fmt.Errorf("UserID %s does not have any properties to update", brivoUser.ExternalID)
+			fmt.Printf("UserID %s does not have any properties to update", brivoUser.ExternalID)
 		}
 		return nil
 	// Handle specific error codes from the API server
@@ -122,5 +124,8 @@ func (event *Event) DeactivateUser(config Config, auth Auth) error {
 	if err := brivoUser.toggleSuspendedStatus(true, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 		return fmt.Errorf("Error deactivating user %s: %s", brivoUser.ExternalID, err)
 	}
+
+	fmt.Printf("Brivo user %s suspended status set to true\n", brivoUser.ExternalID)
+
 	return nil
 }
