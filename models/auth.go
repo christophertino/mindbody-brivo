@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	async "github.com/christophertino/mindbody-brivo/utils"
 )
@@ -30,6 +31,7 @@ type BrivoToken struct {
 	ExpiresIn    int    `json:"expires_in"`
 	Scope        string `json:"scope"`
 	JTI          string `json:"jti"`
+	ExpireTime   time.Time
 }
 
 // MINDBODY access token. Valid for 7 days
@@ -118,6 +120,30 @@ func (token *BrivoToken) GetBrivoToken(config *Config) error {
 	if err = async.DoRequest(req, token); err != nil {
 		return err
 	}
+
+	// Set AccessToken expiration time
+	token.ExpireTime = time.Now().UTC().Add(time.Second * time.Duration(token.ExpiresIn))
+
+	return nil
+}
+
+// RefreshBrivoToken : Fetch a Brivo refresh token after the original access token expires
+func (token *BrivoToken) RefreshBrivoToken(config Config) error {
+	// Create HTTP request
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://auth.brivo.com/oauth/token?grant_type=refresh_token&refresh_token=%s", token.RefreshToken), nil)
+	if err != nil {
+		return fmt.Errorf("Error creating HTTP request: %s", err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Basic "+config.BrivoClientCredentials)
+	req.Header.Add("api-key", config.BrivoAPIKey)
+
+	if err = async.DoRequest(req, token); err != nil {
+		return err
+	}
+
+	// Update AccessToken expiration time
+	token.ExpireTime = time.Now().UTC().Add(time.Second * time.Duration(token.ExpiresIn))
 
 	return nil
 }

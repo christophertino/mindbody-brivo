@@ -13,16 +13,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/christophertino/mindbody-brivo/models"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
 )
 
+var auth models.Auth
+
 // Launch : Start server and Initialize API routes
 func Launch(config *models.Config) {
+	// Generate Brivo access token. MINDBODY token not needed
+	if err := auth.BrivoToken.GetBrivoToken(config); err != nil {
+		log.Fatal("server.Launch: Error generating Brivo access token\n", err)
+	}
+
 	router := mux.NewRouter()
 	// Use wrapper function here so that we can pass `config` to the handler
 	router.HandleFunc("/api/v1/user", func(rw http.ResponseWriter, req *http.Request) {
@@ -82,11 +91,13 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusNoContent)
 
-	// Generate Brivo AUTH token. (MINDBODY token not needed)
-	var auth models.Auth
-	if err = auth.BrivoToken.GetBrivoToken(config); err != nil {
-		fmt.Println("server.userHandler: Error generating Brivo AUTH token\n", err)
-		return
+	// Check for valid Brivo AccessToken
+	if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
+		if err = auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
+			fmt.Println("server.userHandler: Error refreshing Brivo AUTH token\n", err)
+			return
+		}
+		fmt.Println("server.userHandler: Refreshing Brivo AUTH token")
 	}
 
 	// Route event to correct action
