@@ -32,7 +32,7 @@ type BrivoUser struct {
 	MiddleName   string        `json:"middleName"`
 	LastName     string        `json:"lastName"`
 	Suspended    bool          `json:"suspended"`
-	CustomFields []customField `json:"customFields,omitempty"`
+	CustomFields []customField `json:"customFields"`
 	Emails       []email       `json:"emails"`
 	PhoneNumbers []phoneNumber `json:"phoneNumbers"`
 }
@@ -152,6 +152,7 @@ func (user *BrivoUser) buildUser(mbUser MindBodyUser) {
 	user.MiddleName = mbUser.MiddleName
 	user.LastName = mbUser.LastName
 	user.Suspended = (mbUser.Active == false || mbUser.Status != "Active")
+	user.CustomFields = []customField{} // prevents nil comparator issues with cmp.Equal()
 	if mbUser.Email != "" {
 		userEmail.Address = mbUser.Email
 		userEmail.EmailType = "home"
@@ -285,8 +286,6 @@ func (user *BrivoUser) updateUser(brivoAPIKey string, brivoAccessToken string) e
 		return err
 	}
 
-	fmt.Printf("BrivoUser.updateUser: Brivo user %d updated successfully.\n", user.ID)
-
 	return nil
 }
 
@@ -311,8 +310,6 @@ func (user *BrivoUser) toggleSuspendedStatus(suspended bool, brivoAPIKey string,
 	if err = async.DoRequest(req, &r); err != nil {
 		return err
 	}
-
-	fmt.Printf("BrivoUser.toggleSuspendedStatus: Brivo user %d suspended status set to %t\n", user.ID, suspended)
 
 	return nil
 }
