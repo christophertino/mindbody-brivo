@@ -21,7 +21,7 @@ This app requires active webhook subscriptions for:
 
 See [Webhook Subscriptions](https://developers.mindbodyonline.com/WebhooksDocumentation#subscriptions) documentation.
 
-For validation, we use the `X-Mindbody-Signature` header and the `messageSignatureKey` returned from the POST Subscription webhook endpoint. [Read more])(https://developers.mindbodyonline.com/WebhooksDocumentation?shell#x-mindbody-signature-header) 
+For validation, we use the `X-Mindbody-Signature` header and the `messageSignatureKey` returned from the `POST` Subscription webhook endpoint. [Read more](https://developers.mindbodyonline.com/WebhooksDocumentation?shell#x-mindbody-signature-header) 
 
 ## Running the App
 
