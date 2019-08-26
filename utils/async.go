@@ -20,7 +20,7 @@ type JSONError struct {
 }
 
 func (e *JSONError) Error() string {
-	return fmt.Sprintf("async.doRequest: Error code %d and output:\n%+v\n", e.Code, e.Body)
+	return fmt.Sprintf("Error code %d and output:\n%+v\n", e.Code, e.Body)
 }
 
 // DoRequest : Utility function for making and handling async requests.
@@ -42,7 +42,7 @@ func DoRequest(req *http.Request, output interface{}) error {
 	// Handle response
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return fmt.Errorf("async.doRequest: Error reading response.\n%s", err)
+		return fmt.Errorf("Error reading response: %s", err)
 	}
 
 	// Check for error response
@@ -62,7 +62,7 @@ func DoRequest(req *http.Request, output interface{}) error {
 
 	// Build response into output *interface{}
 	if err = json.Unmarshal(data, output); err != nil {
-		return fmt.Errorf("async.doRequest: Error unmarshalling json.\n%s", err)
+		return fmt.Errorf("Error unmarshalling json: %s", err)
 	}
 
 	// fmt.Printf("Async Output: %+v\n", output)

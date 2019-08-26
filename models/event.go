@@ -59,16 +59,16 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 		// Check diff to see if update is needed
 		if !cmp.Equal(existingUser, brivoUser) {
 			if err := brivoUser.updateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				return fmt.Errorf("Event.CreateOrUpdateUser: Error updating user %s\n%s", brivoUser.ExternalID, err)
+				return fmt.Errorf("Error updating user %s: %s", brivoUser.ExternalID, err)
 			}
 			// Handle account re-activation
 			if existingUser.Suspended && !brivoUser.Suspended {
 				if err := brivoUser.toggleSuspendedStatus(false, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-					return fmt.Errorf("Event.CreateOrUpdateUser: Error re-activating user %s\n%s", brivoUser.ExternalID, err)
+					return fmt.Errorf("Error re-activating user %s: %s", brivoUser.ExternalID, err)
 				}
 			}
 		} else {
-			return fmt.Errorf("Event.CreateOrUpdateUser: UserID %s does not have any properties to update", brivoUser.ExternalID)
+			return fmt.Errorf("UserID %s does not have any properties to update", brivoUser.ExternalID)
 		}
 		return nil
 	// Handle specific error codes from the API server
@@ -81,33 +81,33 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 
 			// Create a new user
 			if err := brivoUser.createUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				return fmt.Errorf("Event.CreateOrUpdateUser: Error creating user %s with error: %s", brivoUser.ExternalID, err)
+				return fmt.Errorf("Error creating user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
 			// Create new Brivo credential for this user
 			cred := generateCredential(brivoUser.ExternalID)
 			credID, err := cred.createCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 			if err != nil {
-				return fmt.Errorf("Event.CreateOrUpdateUser: Error creating credential for user %s with error: %s", brivoUser.ExternalID, err)
+				return fmt.Errorf("Error creating credential for user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
 			// Assign credential to user
 			if err := brivoUser.assignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				return fmt.Errorf("Event.CreateOrUpdateUser: Error assigning credential to user %s with error: %s", brivoUser.ExternalID, err)
+				return fmt.Errorf("Error assigning credential to user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
 			// Assign user to group
 			if err := brivoUser.assignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				return fmt.Errorf("Event.CreateOrUpdateUser: Error assigning user %s to group with error: %s", brivoUser.ExternalID, err)
+				return fmt.Errorf("Error assigning user %s to group with error: %s", brivoUser.ExternalID, err)
 			}
 
-			fmt.Printf("Event.CreateOrUpdateUser: Successfully created Brivo user %s", brivoUser.ExternalID)
+			fmt.Printf("Successfully created Brivo user %s\n", brivoUser.ExternalID)
 			return nil
 		}
-		return fmt.Errorf("Event.CreateOrUpdateUser: Error %s", err.Body)
+		return fmt.Errorf("%s", err.Body)
 	// General error
 	default:
-		return fmt.Errorf("Event.CreateOrUpdateUser: Error %s", err)
+		return err
 	}
 }
 
@@ -116,11 +116,11 @@ func (event *Event) DeactivateUser(config Config, auth Auth) error {
 	// Query the user data on Brivo using the MINDBODY ExternalID
 	var brivoUser BrivoUser
 	if err := brivoUser.getUserByID(event.EventData.ClientID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-		return fmt.Errorf("Event.DeactivateUser: Brivo user %s does not exist.\n%s", event.EventData.ClientID, err)
+		return fmt.Errorf("Brivo user %s does not exist. Error: %s", event.EventData.ClientID, err)
 	}
 	// Put Brivo user in suspended status
 	if err := brivoUser.toggleSuspendedStatus(true, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-		return fmt.Errorf("Event.DeactivateUser: Error deactivating user %s\n%s", brivoUser.ExternalID, err)
+		return fmt.Errorf("Error deactivating user %s: %s", brivoUser.ExternalID, err)
 	}
 	return nil
 }
