@@ -56,17 +56,18 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 		brivoUser.buildUser(mbUser)
 		// Update Brivo ID from existing user
 		brivoUser.ID = existingUser.ID
+
 		// Check diff to see if update is needed
 		if !cmp.Equal(existingUser, brivoUser) {
 			if err := brivoUser.updateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				return fmt.Errorf("Error updating user %s: %s", brivoUser.ExternalID, err)
 			}
 			// Handle account re-activation
-			if existingUser.Suspended && !brivoUser.Suspended {
-				if err := brivoUser.toggleSuspendedStatus(false, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-					return fmt.Errorf("Error re-activating user %s: %s", brivoUser.ExternalID, err)
+			if existingUser.Suspended != brivoUser.Suspended {
+				if err := brivoUser.toggleSuspendedStatus(brivoUser.Suspended, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+					return fmt.Errorf("Error changing suspended status for user %s: %s", brivoUser.ExternalID, err)
 				}
-				fmt.Printf("Brivo user %s suspended status set to false\n", brivoUser.ExternalID)
+				fmt.Printf("Brivo user %s suspended status set to %t\n", brivoUser.ExternalID, brivoUser.Suspended)
 			}
 			fmt.Printf("Brivo user %s updated successfully.\n", brivoUser.ExternalID)
 		} else {
