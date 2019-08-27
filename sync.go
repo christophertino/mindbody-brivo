@@ -23,7 +23,7 @@ var (
 // GetAllUsers will fetch all existing users from MINDBODY and Brivo
 func GetAllUsers(config *models.Config) {
 	if err := auth.Authenticate(config); err != nil {
-		fmt.Println("sync.GetAllUsers: Error generating AUTH tokens", err)
+		fmt.Println("Error generating AUTH tokens", err)
 		return
 	}
 
@@ -51,9 +51,9 @@ func GetAllUsers(config *models.Config) {
 	for i := 0; i < 2; i++ {
 		select {
 		case err := <-errCh:
-			log.Fatalln("sync.GetAllUsers: User fetch failed:\n", err)
+			log.Fatalln("User fetch failed:\n", err)
 		default:
-			fmt.Println("sync.GetAllUsers: User fetch success!")
+			fmt.Println("User fetch success!")
 		}
 	}
 

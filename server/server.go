@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/christophertino/mindbody-brivo/models"
+	"github.com/christophertino/mindbody-brivo/utils"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
 )
@@ -29,7 +30,7 @@ var auth models.Auth
 func Launch(config *models.Config) {
 	// Generate Brivo access token. MINDBODY token not needed
 	if err := auth.BrivoToken.GetBrivoToken(config); err != nil {
-		log.Fatalf("server.Launch: Error generating Brivo access token: %s", err)
+		log.Fatalf("Error generating Brivo access token: %s", err)
 	}
 
 	router := mux.NewRouter()
@@ -63,7 +64,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	// Handle request
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		fmt.Println("server.userHandler: Error reading request", err)
+		fmt.Println("Error reading request", err)
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -71,7 +72,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	// Validate that the request came from MINDBODY
 	if !config.Debug {
 		if !validateHeader(body, *config, req) {
-			fmt.Println("server.userHandler: X-Mindbody-Signature is not present or could not be validated")
+			fmt.Println("X-Mindbody-Signature is not present or could not be validated")
 			rw.WriteHeader(http.StatusForbidden)
 			return
 		}
@@ -80,12 +81,13 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	// Build request data into Event model
 	var event models.Event
 	if err = json.Unmarshal(body, &event); err != nil {
-		fmt.Println("server.userHandler: Error unmarshalling json", err)
+		fmt.Println("Error unmarshalling json", err)
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	// fmt.Printf("UserHandler Output: %+v\n", ev)
+	// Debug webhook payload
+	utils.Logger(fmt.Sprintf("EventData payload:\n%+v", event.EventData))
 
 	// Respond with 204
 	rw.Header().Set("Content-Type", "application/json")
@@ -94,10 +96,10 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	// Check for valid Brivo AccessToken
 	if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
 		if err = auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
-			fmt.Println("server.userHandler: Error refreshing Brivo AUTH token:\n", err)
+			fmt.Println("Error refreshing Brivo AUTH token:\n", err)
 			return
 		}
-		fmt.Println("server.userHandler: Refreshing Brivo AUTH token")
+		utils.Logger("Refreshing Brivo AUTH token")
 	}
 
 	// Route event to correct action
@@ -105,23 +107,23 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	case "client.created":
 		// Create a new user
 		if err := event.CreateOrUpdateUser(*config, auth); err != nil {
-			fmt.Printf("server.userHandler: Error creating new Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
+			fmt.Printf("Error creating new Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
 			break
 		}
 	case "client.updated":
 		// Update an existing user
 		if err := event.CreateOrUpdateUser(*config, auth); err != nil {
-			fmt.Printf("server.userHandler: Error updating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
+			fmt.Printf("Error updating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
 			break
 		}
 	case "client.deactivated":
 		// Suspend an existing user
 		if err := event.DeactivateUser(*config, auth); err != nil {
-			fmt.Printf("server.userHandler: Error deactivating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
+			fmt.Printf("Error deactivating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
 			break
 		}
 	default:
-		fmt.Printf("server.userHandler: EventID %s not found\n", event.EventID)
+		fmt.Printf("EventID %s not found\n", event.EventID)
 	}
 }
 

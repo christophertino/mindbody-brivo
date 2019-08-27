@@ -72,7 +72,6 @@ func (auth *Auth) Authenticate(config *Config) error {
 		}
 	}
 
-	// fmt.Printf("AUTH Model: %+v\n", auth)
 	return nil
 }
 

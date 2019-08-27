@@ -17,8 +17,6 @@ func main() {
 	var config models.Config
 	config.GetConfig()
 
-	// fmt.Printf("Config Model: %+v\n", config)
-
 	// Initialize server API routes and listen for MINDBODY webhook events
 	server.Launch(&config)
 }
