@@ -14,7 +14,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-// Event : MINDBODY webhook event data
+// Event stores MINDBODY webhook event data
 type Event struct {
 	MessageID                        string        `json:"messageId"`
 	EventID                          string        `json:"eventId"`
@@ -23,7 +23,7 @@ type Event struct {
 	EventData                        EventUserData `json:"eventData"`
 }
 
-// EventUserData : MINDBODY user data sent by webhook events
+// EventUserData stores MINDBODY user data sent by webhook events
 type EventUserData struct {
 	SiteID           int       `json:"siteId"`
 	ClientID         string    `json:"clientId"`       // The client’s public ID
@@ -39,7 +39,7 @@ type EventUserData struct {
 	Status           string    `json:"status"` // Declined,Non-Member,Active,Expired,Suspended,Terminated
 }
 
-// CreateOrUpdateUser : Webhook event handler for client.updated and client.created
+// CreateOrUpdateUser is a webhook event handler for client.updated and client.created
 func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 	var (
 		brivoUser BrivoUser
@@ -69,9 +69,9 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 				}
 				fmt.Printf("Brivo user %s suspended status set to %t\n", brivoUser.ExternalID, brivoUser.Suspended)
 			}
-			fmt.Printf("Brivo user %s updated successfully.\n", brivoUser.ExternalID)
+			fmt.Printf("Brivo user %s updated successfully\n", brivoUser.ExternalID)
 		} else {
-			fmt.Printf("UserID %s does not have any properties to update", brivoUser.ExternalID)
+			fmt.Printf("UserID %s does not have any properties to update\n", brivoUser.ExternalID)
 		}
 		return nil
 	// Handle specific error codes from the API server
@@ -114,7 +114,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 	}
 }
 
-// DeactivateUser : Webhook event handler for client.deactivated
+// DeactivateUser is a webhook event handler for client.deactivated
 func (event *Event) DeactivateUser(config Config, auth Auth) error {
 	// Query the user data on Brivo using the MINDBODY ExternalID
 	var brivoUser BrivoUser

@@ -16,13 +16,13 @@ import (
 	async "github.com/christophertino/mindbody-brivo/utils"
 )
 
-// Auth : Authentication tokens
+// Auth stores authentication tokens for Brivo and MINDBODY
 type Auth struct {
 	BrivoToken    BrivoToken
 	MindBodyToken mbToken
 }
 
-// BrivoToken : Brivo API Tokens. Valid until `ExpiresIn` and then
+// BrivoToken stores Brivo API Tokens. Valid until `ExpiresIn` and then
 // must be refreshed with `RefreshToken`
 type BrivoToken struct {
 	AccessToken  string `json:"access_token"`
@@ -40,7 +40,7 @@ type mbToken struct {
 	AccessToken string `json:"AccessToken"`
 }
 
-// Authenticate : Fetch access tokens for MINDBODY and Brivo
+// Authenticate fetches access tokens for MINDBODY and Brivo
 func (auth *Auth) Authenticate(config *Config) error {
 	doneCh := make(chan bool)
 	errCh := make(chan error)
@@ -68,7 +68,7 @@ func (auth *Auth) Authenticate(config *Config) error {
 		case err := <-errCh:
 			return fmt.Errorf("Token fetch failed with error: %g", err)
 		case <-doneCh:
-			fmt.Println("Auth.Authenticate: Token fetch success!")
+			fmt.Println("Token fetch success!")
 		}
 	}
 
@@ -104,7 +104,7 @@ func (token *mbToken) getMindBodyToken(config Config) error {
 	return nil
 }
 
-// GetBrivoToken : Retrieve a Brivo Access Token using password grant type.
+// GetBrivoToken retrieves a Brivo Access Token using password grant type.
 // It accepts `config` as a reference for updating via BuildClientCredentials().
 func (token *BrivoToken) GetBrivoToken(config *Config) error {
 	// Create HTTP request
@@ -127,7 +127,7 @@ func (token *BrivoToken) GetBrivoToken(config *Config) error {
 	return nil
 }
 
-// RefreshBrivoToken : Fetch a Brivo refresh token after the original access token expires
+// RefreshBrivoToken fetches a Brivo refresh token after the original access token expires
 func (token *BrivoToken) RefreshBrivoToken(config Config) error {
 	// Create HTTP request
 	req, err := http.NewRequest("POST", fmt.Sprintf("https://auth.brivo.com/oauth/token?grant_type=refresh_token&refresh_token=%s", token.RefreshToken), nil)

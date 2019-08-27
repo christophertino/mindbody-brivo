@@ -13,7 +13,7 @@ import (
 	"net/http"
 )
 
-// JSONError : Custom error type for diagnosing server responses
+// JSONError is a custom error type for diagnosing server responses
 type JSONError struct {
 	Code int
 	Body map[string]interface{}
@@ -23,7 +23,7 @@ func (e *JSONError) Error() string {
 	return fmt.Sprintf("Error code %d and output:\n%+v\n", e.Code, e.Body)
 }
 
-// DoRequest : Utility function for making and handling async requests.
+// DoRequest is a utility function for making and handling async requests.
 // It accepts an http.Request and `output` as pointer to structure that will Unmarshal into.
 func DoRequest(req *http.Request, output interface{}) error {
 	// Proxy Debugging

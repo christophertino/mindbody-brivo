@@ -20,7 +20,7 @@ import (
 	async "github.com/christophertino/mindbody-brivo/utils"
 )
 
-// Credential : Brivo access credential
+// Credential stores the Brivo access credential
 type Credential struct {
 	ID                int              `json:"id,omitempty"`
 	CredentialFormat  CredentialFormat `json:"credentialFormat"`
@@ -28,7 +28,7 @@ type Credential struct {
 	EncodedCredential string           `json:"encodedCredential"`
 }
 
-// CredentialFormat : Credential format
+// CredentialFormat stores the Brivo credential format
 type CredentialFormat struct {
 	ID int `json:"id"`
 }
@@ -43,13 +43,13 @@ func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken st
 	// Build request body JSON
 	bytesMessage, err := json.Marshal(cred)
 	if err != nil {
-		return 0, fmt.Errorf("Credential.createCredential: Error building POST body json.\n%s", err)
+		return 0, fmt.Errorf("Error building POST body json: %s", err)
 	}
 
 	// Create HTTP request
 	req, err := http.NewRequest("POST", "https://api.brivo.com/v1/api/credentials", bytes.NewBuffer(bytesMessage))
 	if err != nil {
-		return 0, fmt.Errorf("Credential.createCredential: Error creating HTTP request\n%s", err)
+		return 0, fmt.Errorf("Error creating HTTP request: %s", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
@@ -64,7 +64,7 @@ func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken st
 	case *async.JSONError:
 		// If the credential already exists we need to fetch it's ID from Brivo
 		if err.Code == 400 && strings.Contains(err.Body["message"].(string), "Duplicate Credential Found") {
-			fmt.Printf("Credential.createCredential: Credential ID %s already exists.\n", cred.ReferenceID)
+			fmt.Printf("Credential ID %s already exists.\n", cred.ReferenceID)
 			return getCredential(cred.ReferenceID, brivoAPIKey, brivoAccessToken)
 		}
 		// Server error
@@ -88,11 +88,12 @@ func generateCredential(externalID string) *Credential {
 	return &cred
 }
 
+// Get a Brivo credential by reference_id (external id) and return the credentail ID
 func getCredential(externalID string, brivoAPIKey string, brivoAccessToken string) (int, error) {
 	// Create HTTP request
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/credentials?filter=reference_id__eq:%s", externalID), nil)
 	if err != nil {
-		return 0, fmt.Errorf("Credential.getCredential: Error creating HTTP request.\n%s", err)
+		return 0, fmt.Errorf("Error creating HTTP request: %s", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
@@ -105,9 +106,9 @@ func getCredential(externalID string, brivoAPIKey string, brivoAccessToken strin
 
 	// The count should always be 1 or 0
 	if creds.Count > 0 {
-		fmt.Printf("Credential.getCredential: Successfully fetched Credential ID %d for Reference ID %s\n", creds.Data[0].ID, externalID)
+		fmt.Printf("Successfully fetched Credential ID %d for Reference ID %s\n", creds.Data[0].ID, externalID)
 		return creds.Data[0].ID, nil
 	}
 
-	return 0, fmt.Errorf("Credential.getCredential: Credential with ReferenceID %s not found", externalID)
+	return 0, fmt.Errorf("Credential with ReferenceID %s not found", externalID)
 }

@@ -16,7 +16,7 @@ import (
 	async "github.com/christophertino/mindbody-brivo/utils"
 )
 
-// Brivo : API response data
+// Brivo stores Brivo API response data
 type Brivo struct {
 	Data     []BrivoUser `json:"data"`
 	Offset   int         `json:"offset"`
@@ -24,7 +24,7 @@ type Brivo struct {
 	Count    int         `json:"count"`
 }
 
-// BrivoUser : Brivo user data
+// BrivoUser stores Brivo user data
 type BrivoUser struct {
 	ID           int           `json:"id,omitempty"`
 	ExternalID   string        `json:"externalId"` // Barcode ID from MINDBODY to link accounts
@@ -59,7 +59,7 @@ type outputLog struct {
 
 var brivoIDSet map[string]bool // keep track of all existing IDs for quick lookup
 
-// ListUsers : Build Brivo data model with user data
+// ListUsers builds the Brivo data model with user data
 func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error {
 	// Create HTTP request
 	req, err := http.NewRequest("GET", "https://api.brivo.com/v1/api/users", nil)
@@ -83,8 +83,8 @@ func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error
 	return nil
 }
 
-// CreateUsers : Iterate over all MINDBODY users, convert to Brivo users
-// and POST to Brivo API along with credential and group assignments
+// CreateUsers will iterate over all MINDBODY users, convert them to Brivo users
+// and POST to them Brivo API along with credential and group assignments
 func (brivo *Brivo) CreateUsers(mb MindBody, config Config, auth Auth) {
 	var (
 		wg sync.WaitGroup
@@ -314,6 +314,7 @@ func (user *BrivoUser) toggleSuspendedStatus(suspended bool, brivoAPIKey string,
 	return nil
 }
 
+// Print output log for Sync app
 func (o *outputLog) printLog() {
 	fmt.Println("---------- OUTPUT LOG ----------")
 	fmt.Println("Users Created Successfully:", o.success)

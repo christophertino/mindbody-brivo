@@ -24,7 +24,7 @@ type MindBody struct {
 	Clients []MindBodyUser `json:"Clients"`
 }
 
-// MindBodyUser : MINDBODY user data
+// MindBodyUser stores MINDBODY user data
 type MindBodyUser struct {
 	ID          string `json:"Id"`       // Client’s barcode ID used for client-related API calls
 	UniqueID    int    `json:"UniqueId"` // Client’s unique system-generated ID
@@ -39,7 +39,7 @@ type MindBodyUser struct {
 	Status      string `json:"Status"` // Declined,Non-Member,Active,Expired,Suspended,Terminated
 }
 
-// GetClients : Build MINDBODY data model with Client data
+// GetClients builds the MINDBODY data model with client data
 func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 	var (
 		limit       = 5 // max 200
