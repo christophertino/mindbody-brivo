@@ -17,8 +17,6 @@ func main() {
 	var config models.Config
 	config.GetConfig()
 
-	// fmt.Printf("Config Model: %+v\n", config)
-
 	// Sync all MINDBODY clients to Brivo
 	sync.GetAllUsers(&config)
 }
