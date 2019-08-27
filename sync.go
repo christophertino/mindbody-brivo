@@ -20,7 +20,7 @@ var (
 	brivo models.Brivo
 )
 
-// GetAllUsers : Fetch all existing users from MINDBODY and Brivo
+// GetAllUsers will fetch all existing users from MINDBODY and Brivo
 func GetAllUsers(config *models.Config) {
 	if err := auth.Authenticate(config); err != nil {
 		fmt.Println("sync.GetAllUsers: Error generating AUTH tokens", err)

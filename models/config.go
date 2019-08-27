@@ -15,7 +15,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Config : Settings imported from .env
+// Config stores environment settings imported from .env
 type Config struct {
 	BrivoUsername          string
 	BrivoPassword          string
@@ -35,14 +35,14 @@ type Config struct {
 	Port  string
 }
 
-// GetConfig : Load environment variables into Config. Uses Config Vars on
+// GetConfig loads the environment variables into Config. Uses Config Vars on
 // Heroku or .env file locally
 func (config *Config) GetConfig() {
 	// Check for "ENV" flag on Heroku
 	if os.Getenv("ENV") != "staging" && os.Getenv("ENV") != "production" {
 		// Load local env file
 		if err := godotenv.Load(); err != nil {
-			log.Fatalln("Config.GetConfig: Error loading .env file")
+			log.Fatalf("Error loading .env file: %s", err)
 		}
 	}
 

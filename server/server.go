@@ -25,25 +25,25 @@ import (
 
 var auth models.Auth
 
-// Launch : Start server and Initialize API routes
+// Launch will start the web server and initialize API routes
 func Launch(config *models.Config) {
 	// Generate Brivo access token. MINDBODY token not needed
 	if err := auth.BrivoToken.GetBrivoToken(config); err != nil {
-		log.Fatal("server.Launch: Error generating Brivo access token\n", err)
+		log.Fatalf("server.Launch: Error generating Brivo access token: %s", err)
 	}
 
 	router := mux.NewRouter()
 	// Use wrapper function here so that we can pass `config` to the handler
 	router.HandleFunc("/api/v1/user", func(rw http.ResponseWriter, req *http.Request) {
 		userHandler(rw, req, config)
-	}).Methods("POST")
+	}).Methods(http.MethodPost)
 
 	// Used by MINDBODY to confirm webhook URL is valid
 	router.HandleFunc("/api/v1/user", func(rw http.ResponseWriter, req *http.Request) {
 		fmt.Println("Received HEAD Request. Webhook validation successful")
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(http.StatusNoContent) // Respond with 204
-	}).Methods("HEAD")
+	}).Methods(http.MethodHead)
 
 	// Set default handler
 	router.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
@@ -53,7 +53,7 @@ func Launch(config *models.Config) {
 	server := negroni.New()
 	server.UseHandler(router)
 
-	fmt.Printf("server.Launch: Listening for webhook events at PORT %s\n", config.Port)
+	fmt.Printf("Listening for webhook events at PORT %s\n", config.Port)
 
 	http.ListenAndServe(":"+config.Port, server)
 }
@@ -94,7 +94,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	// Check for valid Brivo AccessToken
 	if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
 		if err = auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
-			fmt.Println("server.userHandler: Error refreshing Brivo AUTH token\n", err)
+			fmt.Println("server.userHandler: Error refreshing Brivo AUTH token:\n", err)
 			return
 		}
 		fmt.Println("server.userHandler: Refreshing Brivo AUTH token")
