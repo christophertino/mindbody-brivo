@@ -9,8 +9,8 @@
 package main
 
 import (
-	sync "github.com/christophertino/mindbody-brivo"
 	"github.com/christophertino/mindbody-brivo/models"
+	"github.com/christophertino/mindbody-brivo/sync"
 )
 
 func main() {
