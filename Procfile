@@ -1,1 +1,1 @@
-web: bin/webhook
+web: bin/server

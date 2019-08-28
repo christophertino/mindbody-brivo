@@ -42,14 +42,11 @@ type MindBodyUser struct {
 // GetClients builds the MINDBODY data model with client data
 func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 	var (
-		limit       = 5 // max 200
-		count       = 0
-		resultsLeft = 1 // so that we loop at least once
+		count   = 0
+		limit   = 5 // max 200
+		results []MindBodyUser
 	)
 	for {
-		if resultsLeft <= 0 {
-			break
-		}
 		// Create HTTP request
 		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.mindbodyonline.com/public/v6/client/clients?limit=%d&offset=%d", limit, count), nil)
 		if err != nil {
@@ -69,9 +66,14 @@ func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 			break
 		}
 
-		count = count + mb.PaginationResponse.PageSize
-		resultsLeft = mb.PaginationResponse.TotalResults - count
+		results = append(results, mb.Clients...)
+		count += mb.PaginationResponse.PageSize
+		if count >= mb.PaginationResponse.TotalResults {
+			break
+		}
 	}
+
+	mb.Clients = results
 
 	return nil
 }

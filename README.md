@@ -52,7 +52,7 @@ $ go run cmd/sync/main.go
 
 ```sh
 # Run the application and listen for webhook events
-$ go run cmd/webhook/main.go
+$ go run cmd/server/main.go
 ```
 
 ## Heroku Integration
@@ -64,7 +64,7 @@ $ go run cmd/webhook/main.go
 
 ```sh
 # Compile the webhook application
-$ go build -o bin/webhook -v cmd/webhook/main.go
+$ go build -o bin/server -v cmd/server/main.go
 ```
 
 ```sh
@@ -75,6 +75,14 @@ $ heroku local web
 #### Deploying to Heroku
 ```sh
 $ git push heroku master
+```
+
+
+### Clear Brivo OnAir Development Environment
+
+```sh
+# This will remove all users and credentials from Brivo
+$ go run cmd/clean/main.go
 ```
 
 ## License
