@@ -126,7 +126,7 @@ func (creds *CredentialList) GetCredentials(brivoAPIKey string, brivoAccessToken
 
 	for {
 		// Create HTTP request
-		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/credentials?offset=%s&pageSize:%s", count, pageSize), nil)
+		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/credentials?offset=%d&pageSize:%d", count, pageSize), nil)
 		if err != nil {
 			return fmt.Errorf("Error creating HTTP request: %s", err)
 		}
@@ -146,6 +146,25 @@ func (creds *CredentialList) GetCredentials(brivoAPIKey string, brivoAccessToken
 	}
 
 	creds.Data = results
+
+	return nil
+}
+
+// DeleteCredential will delete a Brivo user by ID
+func (cred *Credential) DeleteCredential(brivoAPIKey string, brivoAccessToken string) error {
+	// Create HTTP request
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("https://api.brivo.com/v1/api/credentials/%d", cred.ID), nil)
+	if err != nil {
+		return fmt.Errorf("Error creating HTTP request: %s", err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
+	req.Header.Add("api-key", brivoAPIKey)
+
+	var r map[string]interface{}
+	if err = async.DoRequest(req, &r); err != nil {
+		return err
+	}
 
 	return nil
 }

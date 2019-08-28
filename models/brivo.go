@@ -61,24 +61,39 @@ var brivoIDSet map[string]bool // keep track of all existing IDs for quick looku
 
 // ListUsers builds the Brivo data model with user data
 func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error {
-	// Create HTTP request
-	req, err := http.NewRequest("GET", "https://api.brivo.com/v1/api/users", nil)
-	if err != nil {
-		return fmt.Errorf("Error creating HTTP request: %s", err)
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
-	req.Header.Add("api-key", brivoAPIKey)
+	var (
+		count      = 0
+		pageSize   = 100 // Max 100
+		brivoIDSet = make(map[string]bool)
+		results    []BrivoUser
+	)
+	for {
+		// Create HTTP request
+		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/users?offset=%d&pageSize:%d", count, pageSize), nil)
+		if err != nil {
+			return fmt.Errorf("Error creating HTTP request: %s", err)
+		}
+		req.Header.Add("Content-Type", "application/json")
+		req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
+		req.Header.Add("api-key", brivoAPIKey)
 
-	if err = async.DoRequest(req, brivo); err != nil {
-		return err
+		if err = async.DoRequest(req, brivo); err != nil {
+			return err
+		}
+
+		// Stash external IDs in a set so we can check them later against MB users
+		for _, element := range brivo.Data {
+			brivoIDSet[element.ExternalID] = true
+		}
+
+		results = append(results, brivo.Data...)
+		count += brivo.PageSize
+		if count >= brivo.Count {
+			break
+		}
 	}
 
-	// Stash external IDs in a set so we can check them later against MB users
-	brivoIDSet = make(map[string]bool)
-	for _, element := range brivo.Data {
-		brivoIDSet[element.ExternalID] = true
-	}
+	brivo.Data = results
 
 	return nil
 }
@@ -299,6 +314,25 @@ func (user *BrivoUser) toggleSuspendedStatus(suspended bool, brivoAPIKey string,
 
 	// Create HTTP request
 	req, err := http.NewRequest("PUT", fmt.Sprintf("https://api.brivo.com/v1/api/users/%d/suspended", user.ID), bytes.NewBuffer(bytesMessage))
+	if err != nil {
+		return fmt.Errorf("Error creating HTTP request: %s", err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
+	req.Header.Add("api-key", brivoAPIKey)
+
+	var r map[string]interface{}
+	if err = async.DoRequest(req, &r); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteUser will delete a Brivo user by ID
+func (user *BrivoUser) DeleteUser(brivoAPIKey string, brivoAccessToken string) error {
+	// Create HTTP request
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("https://api.brivo.com/v1/api/users/%d", user.ID), nil)
 	if err != nil {
 		return fmt.Errorf("Error creating HTTP request: %s", err)
 	}

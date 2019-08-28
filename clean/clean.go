@@ -7,6 +7,7 @@
 package clean
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/christophertino/mindbody-brivo/models"
@@ -38,11 +39,15 @@ func Nuke(config *models.Config) {
 
 	// Loop over all users and delete
 	for _, user := range brivo.Data {
-
+		if err := user.DeleteUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+			fmt.Printf("Error deleting user %d: %s\n", user.ID, err)
+		}
 	}
 
 	// Loop over all credentials and delete
 	for _, cred := range creds.Data {
-
+		if err := cred.DeleteCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+			fmt.Printf("Error deleting credential %d: %s\n", cred.ID, err)
+		}
 	}
 }
