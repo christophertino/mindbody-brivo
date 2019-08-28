@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/christophertino/mindbody-brivo/models"
-	"github.com/christophertino/mindbody-brivo/utils"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
 )
@@ -87,7 +86,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	}
 
 	// Debug webhook payload
-	utils.Logger(fmt.Sprintf("EventData payload:\n%+v", event.EventData))
+	logger(fmt.Sprintf("EventData payload:\n%+v", event.EventData))
 
 	// Respond with 204
 	rw.Header().Set("Content-Type", "application/json")
@@ -99,7 +98,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 			fmt.Println("Error refreshing Brivo AUTH token:\n", err)
 			return
 		}
-		utils.Logger("Refreshing Brivo AUTH token")
+		logger("Refreshing Brivo AUTH token")
 	}
 
 	// Route event to correct action

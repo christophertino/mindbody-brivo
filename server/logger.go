@@ -4,15 +4,15 @@
 
 // Debug Logger
 
-package utils
+package server
 
 import (
 	"fmt"
 	"os"
 )
 
-// Logger wraps Println in a DEBUG env check
-func Logger(message string) {
+// Wraps Println in a DEBUG env check
+func logger(message string) {
 	if os.Getenv("DEBUG") == "true" {
 		fmt.Println(message)
 	}
