@@ -7,6 +7,7 @@
 package models
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net/http"
 
@@ -91,4 +92,12 @@ func (mbUser *MindBodyUser) buildUser(eventData EventUserData) {
 	mbUser.WorkPhone = eventData.WorkPhone
 	mbUser.Active = (eventData.Status == "Active")
 	mbUser.Status = eventData.Status
+}
+
+// IsValidID checks to make sure MindBodyUser.ID and EventUserData.ClientID
+// are valid hexadecimal. If the ID value is not a hex, that means the user has
+// not been assigned a MINDBODY security bracelet and should not be added to Brivo.
+func IsValidID(clientID string) bool {
+	_, err := hex.DecodeString(clientID)
+	return err == nil
 }

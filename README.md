@@ -2,9 +2,10 @@
 
 Sync membership data between MINDBODY and Brivo OnAir. This application makes the following assumptions:
 
-+ Master client list is stored in MINDBODY and mirrored to Brivo
-+ MINDBODY users have been assigned a wristband with a generated barcode ID
-+ Brivo credentials are cleared when the user is deactivated in MINDBODY
++ The master client data is stored in MINDBODY and mirrored to Brivo
++ MINDBODY users have been assigned a wristband with a generated hexadecimal ID
+    + Only users with a valid hex ID will be mirrored to Brivo
++ When a user is deactivated in MINDBODY, their account is put into suspended state in Brivo
 
 ## Generating API Keys
 
