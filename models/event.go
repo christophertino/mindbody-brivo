@@ -26,8 +26,8 @@ type Event struct {
 // EventUserData stores MINDBODY user data sent by webhook events
 type EventUserData struct {
 	SiteID           int       `json:"siteId"`
-	ClientID         string    `json:"clientId"`       // The client’s public ID
-	ClientUniqueID   int       `json:"clientUniqueId"` // The client’s guaranteed unique ID
+	ClientID         string    `json:"clientId"`       // The client’s public ID (MindBodyUser.ID)
+	ClientUniqueID   int       `json:"clientUniqueId"` // The client’s guaranteed unique ID (MindBodyUser.UniqueID)
 	CreationDateTime time.Time `json:"creationDateTime"`
 	FirstName        string    `json:"firstName"`
 	MiddleName       string    `json:"middleName"` // Currently not supported

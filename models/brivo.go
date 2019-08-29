@@ -111,6 +111,14 @@ func (brivo *Brivo) CreateUsers(mb MindBody, config Config, auth Auth) {
 	for i := range mb.Clients {
 		var user BrivoUser
 		mbUser := mb.Clients[i]
+
+		// Validate that the ClientID is a valid hex ID
+		if !IsValidID(mbUser.ID) {
+			fmt.Printf("User %s is not a valid hex ID", mbUser.ID)
+			return
+		}
+
+		// Convert MINDBODY user to Brivo user
 		user.buildUser(mbUser)
 
 		// Make Brivo API calls

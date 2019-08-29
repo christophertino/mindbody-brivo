@@ -85,12 +85,18 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 		return
 	}
 
-	// Debug webhook payload
-	logger(fmt.Sprintf("EventData payload:\n%+v", event.EventData))
-
 	// Respond with 204
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusNoContent)
+
+	// Validate that the ClientID is a valid hex ID
+	if !models.IsValidID(event.EventData.ClientID) {
+		fmt.Printf("User %s is not a valid hex ID", event.EventData.ClientID)
+		return
+	}
+
+	// Debug webhook payload
+	logger(fmt.Sprintf("EventData payload:\n%+v", event.EventData))
 
 	// Check for valid Brivo AccessToken
 	if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
