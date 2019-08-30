@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"time"
 
-	async "github.com/christophertino/mindbody-brivo/utils"
+	utils "github.com/christophertino/mindbody-brivo"
 )
 
 // Auth stores authentication tokens for Brivo and MINDBODY
@@ -96,7 +96,7 @@ func (token *mbToken) getMindBodyToken(config Config) error {
 	req.Header.Add("SiteId", config.MindbodySite)
 	req.Header.Add("Api-Key", config.MindbodyAPIKey)
 
-	if err = async.DoRequest(req, token); err != nil {
+	if err = utils.DoRequest(req, token); err != nil {
 		return err
 	}
 
@@ -116,7 +116,7 @@ func (token *BrivoToken) GetBrivoToken(config *Config) error {
 	req.Header.Add("Authorization", "Basic "+config.BrivoClientCredentials)
 	req.Header.Add("api-key", config.BrivoAPIKey)
 
-	if err = async.DoRequest(req, token); err != nil {
+	if err = utils.DoRequest(req, token); err != nil {
 		return err
 	}
 
@@ -137,7 +137,7 @@ func (token *BrivoToken) RefreshBrivoToken(config Config) error {
 	req.Header.Add("Authorization", "Basic "+config.BrivoClientCredentials)
 	req.Header.Add("api-key", config.BrivoAPIKey)
 
-	if err = async.DoRequest(req, token); err != nil {
+	if err = utils.DoRequest(req, token); err != nil {
 		return err
 	}
 

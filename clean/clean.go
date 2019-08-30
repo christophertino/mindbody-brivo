@@ -9,6 +9,7 @@ package clean
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/christophertino/mindbody-brivo/models"
 )
@@ -20,6 +21,7 @@ func Nuke(config *models.Config) {
 		auth  models.Auth
 		brivo models.Brivo
 		creds models.CredentialList
+		wg    sync.WaitGroup
 	)
 
 	// Generate Brivo access token
@@ -27,27 +29,50 @@ func Nuke(config *models.Config) {
 		log.Fatalf("Error generating Brivo access token: %s", err)
 	}
 
+	// TODO: Handle rate limiting. Brivo rate limit is 20 calls/second
+
 	// Get all Brivo users
-	if err := brivo.ListUsers(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-		log.Fatalf("Error fetching Brivo users: %s", err)
-	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := brivo.ListUsers(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+			log.Fatalln("Error fetching Brivo users", err)
+		}
+	}()
 
 	// Get all Brivo credentials
-	if err := creds.GetCredentials(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-		log.Fatalf("Error fetching Brivo credentials: %s", err)
-	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := creds.GetCredentials(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+			log.Fatalf("Error fetching Brivo credentials: %s", err)
+		}
+	}()
+
+	wg.Wait()
 
 	// Loop over all users and delete
 	for _, user := range brivo.Data {
-		if err := user.DeleteUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-			fmt.Printf("Error deleting user %d: %s\n", user.ID, err)
-		}
+		wg.Add(1)
+		go func(u models.BrivoUser) {
+			defer wg.Done()
+			if err := u.DeleteUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				fmt.Printf("Error deleting user %d: %s\n", u.ID, err)
+			}
+		}(user)
 	}
 
 	// Loop over all credentials and delete
 	for _, cred := range creds.Data {
-		if err := cred.DeleteCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-			fmt.Printf("Error deleting credential %d: %s\n", cred.ID, err)
-		}
+		wg.Add(1)
+		go func(c models.Credential) {
+			defer wg.Done()
+			if err := c.DeleteCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				fmt.Printf("Error deleting credential %d: %s\n", c.ID, err)
+			}
+		}(cred)
 	}
+	wg.Wait()
+
+	fmt.Println("Nuke completed. Check error logs for output.")
 }

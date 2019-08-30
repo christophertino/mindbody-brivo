@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"sync"
 
-	async "github.com/christophertino/mindbody-brivo/utils"
+	utils "github.com/christophertino/mindbody-brivo"
 )
 
 // Brivo stores Brivo API response data
@@ -77,7 +77,7 @@ func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error
 		req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
 		req.Header.Add("api-key", brivoAPIKey)
 
-		if err = async.DoRequest(req, brivo); err != nil {
+		if err = utils.DoRequest(req, brivo); err != nil {
 			return err
 		}
 
@@ -92,7 +92,6 @@ func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error
 			break
 		}
 	}
-
 	brivo.Data = results
 
 	return nil
@@ -221,7 +220,7 @@ func (user *BrivoUser) createUser(brivoAPIKey string, brivoAccessToken string) e
 	req.Header.Add("api-key", brivoAPIKey)
 
 	var r map[string]interface{}
-	if err = async.DoRequest(req, &r); err != nil {
+	if err = utils.DoRequest(req, &r); err != nil {
 		return err
 	}
 
@@ -243,7 +242,7 @@ func (user *BrivoUser) assignUserCredential(credID int, brivoAPIKey string, briv
 	req.Header.Add("api-key", brivoAPIKey)
 
 	var r map[string]interface{}
-	if err = async.DoRequest(req, &r); err != nil {
+	if err = utils.DoRequest(req, &r); err != nil {
 		return err
 	}
 
@@ -262,7 +261,7 @@ func (user *BrivoUser) assignUserGroup(groupID int, brivoAPIKey string, brivoAcc
 	req.Header.Add("api-key", brivoAPIKey)
 
 	var r map[string]interface{}
-	if err = async.DoRequest(req, &r); err != nil {
+	if err = utils.DoRequest(req, &r); err != nil {
 		return err
 	}
 
@@ -280,7 +279,7 @@ func (user *BrivoUser) getUserByID(externalID string, brivoAPIKey string, brivoA
 	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
 	req.Header.Add("api-key", brivoAPIKey)
 
-	if err = async.DoRequest(req, &user); err != nil {
+	if err = utils.DoRequest(req, user); err != nil {
 		return err
 	}
 
@@ -305,7 +304,7 @@ func (user *BrivoUser) updateUser(brivoAPIKey string, brivoAccessToken string) e
 	req.Header.Add("api-key", brivoAPIKey)
 
 	var r map[string]interface{}
-	if err = async.DoRequest(req, &r); err != nil {
+	if err = utils.DoRequest(req, &r); err != nil {
 		return err
 	}
 
@@ -330,7 +329,7 @@ func (user *BrivoUser) toggleSuspendedStatus(suspended bool, brivoAPIKey string,
 	req.Header.Add("api-key", brivoAPIKey)
 
 	var r map[string]interface{}
-	if err = async.DoRequest(req, &r); err != nil {
+	if err = utils.DoRequest(req, &r); err != nil {
 		return err
 	}
 
@@ -349,7 +348,7 @@ func (user *BrivoUser) DeleteUser(brivoAPIKey string, brivoAccessToken string) e
 	req.Header.Add("api-key", brivoAPIKey)
 
 	var r map[string]interface{}
-	if err = async.DoRequest(req, &r); err != nil {
+	if err = utils.DoRequest(req, &r); err != nil {
 		return err
 	}
 
