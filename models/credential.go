@@ -17,7 +17,7 @@ import (
 	"net/http"
 	"strings"
 
-	async "github.com/christophertino/mindbody-brivo/utils"
+	utils "github.com/christophertino/mindbody-brivo"
 )
 
 // CredentialList is the data format returned when querying credentials from Brivo
@@ -59,12 +59,12 @@ func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken st
 	req.Header.Add("api-key", brivoAPIKey)
 
 	var r map[string]interface{}
-	err = async.DoRequest(req, &r)
+	err = utils.DoRequest(req, &r)
 	switch err := err.(type) {
 	case nil:
 		// Return the new credential ID
 		return int(r["id"].(float64)), nil
-	case *async.JSONError:
+	case *utils.JSONError:
 		// If the credential already exists we need to fetch it's ID from Brivo
 		if err.Code == 400 && strings.Contains(err.Body["message"].(string), "Duplicate Credential Found") {
 			fmt.Printf("Credential ID %s already exists.\n", cred.ReferenceID)
@@ -103,7 +103,7 @@ func getCredentialByID(externalID string, brivoAPIKey string, brivoAccessToken s
 	req.Header.Add("api-key", brivoAPIKey)
 
 	var creds CredentialList
-	if err = async.DoRequest(req, &creds); err != nil {
+	if err = utils.DoRequest(req, &creds); err != nil {
 		return 0, err
 	}
 
@@ -120,7 +120,7 @@ func getCredentialByID(externalID string, brivoAPIKey string, brivoAccessToken s
 func (creds *CredentialList) GetCredentials(brivoAPIKey string, brivoAccessToken string) error {
 	var (
 		count    = 0
-		pageSize = 100
+		pageSize = 100 // Max 100
 		results  []Credential
 	)
 
@@ -134,7 +134,7 @@ func (creds *CredentialList) GetCredentials(brivoAPIKey string, brivoAccessToken
 		req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
 		req.Header.Add("api-key", brivoAPIKey)
 
-		if err = async.DoRequest(req, &creds); err != nil {
+		if err = utils.DoRequest(req, creds); err != nil {
 			return err
 		}
 
@@ -162,7 +162,7 @@ func (cred *Credential) DeleteCredential(brivoAPIKey string, brivoAccessToken st
 	req.Header.Add("api-key", brivoAPIKey)
 
 	var r map[string]interface{}
-	if err = async.DoRequest(req, &r); err != nil {
+	if err = utils.DoRequest(req, &r); err != nil {
 		return err
 	}
 

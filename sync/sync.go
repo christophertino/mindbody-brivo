@@ -28,34 +28,24 @@ func GetAllUsers(config *models.Config) {
 	}
 
 	var wg sync.WaitGroup
-	var errCh = make(chan error)
 
 	// Get all MINDBODY clients
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		if err := mb.GetClients(*config, auth.MindBodyToken.AccessToken); err != nil {
-			errCh <- err
+			log.Fatalln("Error fetching MINDBODY clients", err)
 		}
 	}()
 
-	// Get existing Brivo clients
+	// Get existing Brivo users
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		if err := brivo.ListUsers(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-			errCh <- err
+			log.Fatalln("Error fetching Brivo users", err)
 		}
 	}()
-
-	for i := 0; i < 2; i++ {
-		select {
-		case err := <-errCh:
-			log.Fatalln("User fetch failed:\n", err)
-		default:
-			fmt.Println("User fetch success!")
-		}
-	}
 
 	wg.Wait()
 

@@ -2,15 +2,16 @@
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License v. 2.0, which can be found in the LICENSE file.
 
-// Async Utils
+// Shared Utils
 
-package utils
+package mindbodybrivo
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 )
 
 // JSONError is a custom error type for diagnosing server responses
@@ -68,4 +69,11 @@ func DoRequest(req *http.Request, output interface{}) error {
 	// fmt.Printf("Async Output: %+v\n", output)
 
 	return nil
+}
+
+// Logger wraps Println in a DEBUG env check
+func Logger(message string) {
+	if os.Getenv("DEBUG") == "true" {
+		fmt.Println(message)
+	}
 }

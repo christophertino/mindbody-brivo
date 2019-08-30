@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	async "github.com/christophertino/mindbody-brivo/utils"
+	utils "github.com/christophertino/mindbody-brivo"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -75,7 +75,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 		}
 		return nil
 	// Handle specific error codes from the API server
-	case *async.JSONError:
+	case *utils.JSONError:
 		// User does not exist: Create new user
 		if err.Code == 404 {
 			// Build event data into Brivo user

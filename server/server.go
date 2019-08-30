@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	utils "github.com/christophertino/mindbody-brivo"
 	"github.com/christophertino/mindbody-brivo/models"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
@@ -87,7 +88,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 
 	// Respond with 204
 	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusNoContent)
+	rw.WriteHeader(http.StatusAccepted)
 
 	// Validate that the ClientID is a valid hex ID
 	if !models.IsValidID(event.EventData.ClientID) {
@@ -96,7 +97,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	}
 
 	// Debug webhook payload
-	logger(fmt.Sprintf("EventData payload:\n%+v", event.EventData))
+	utils.Logger(fmt.Sprintf("EventData payload:\n%+v", event.EventData))
 
 	// Check for valid Brivo AccessToken
 	if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
@@ -104,7 +105,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 			fmt.Println("Error refreshing Brivo AUTH token:\n", err)
 			return
 		}
-		logger("Refreshing Brivo AUTH token")
+		utils.Logger("Refreshing Brivo AUTH token")
 	}
 
 	// Route event to correct action

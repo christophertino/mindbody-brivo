@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"net/http"
 
-	async "github.com/christophertino/mindbody-brivo/utils"
+	utils "github.com/christophertino/mindbody-brivo"
 )
 
 // MindBody Client Data
@@ -44,7 +44,7 @@ type MindBodyUser struct {
 func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 	var (
 		count   = 0
-		limit   = 5 // max 200
+		limit   = 5 // Max 200
 		results []MindBodyUser
 	)
 	for {
@@ -58,7 +58,7 @@ func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 		req.Header.Add("Api-Key", config.MindbodyAPIKey)
 		req.Header.Add("Authorization", mbAccessToken)
 
-		if err = async.DoRequest(req, mb); err != nil {
+		if err = utils.DoRequest(req, mb); err != nil {
 			return err
 		}
 
