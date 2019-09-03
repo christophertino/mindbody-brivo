@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/christophertino/mindbody-brivo/models"
 )
@@ -29,24 +30,36 @@ func Nuke(config *models.Config) {
 		log.Fatalf("Error generating Brivo access token: %s", err)
 	}
 
-	// TODO: Handle rate limiting. Brivo rate limit is 20 calls/second
+	// Handle rate limiting. Brivo rate limit is 20 calls/second
+	const rateLimit = 20
+	var semaphore = make(chan bool, rateLimit)
 
 	// Get all Brivo users
 	wg.Add(1)
+	semaphore <- true
 	go func() {
-		defer wg.Done()
+		defer func() {
+			<-semaphore
+			wg.Done()
+		}()
 		if err := brivo.ListUsers(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 			log.Fatalln("Error fetching Brivo users", err)
 		}
+		time.Sleep(time.Second * 1)
 	}()
 
 	// Get all Brivo credentials
 	wg.Add(1)
+	semaphore <- true
 	go func() {
-		defer wg.Done()
+		defer func() {
+			<-semaphore
+			wg.Done()
+		}()
 		if err := creds.GetCredentials(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 			log.Fatalf("Error fetching Brivo credentials: %s", err)
 		}
+		time.Sleep(time.Second * 1)
 	}()
 
 	wg.Wait()
@@ -54,24 +67,35 @@ func Nuke(config *models.Config) {
 	// Loop over all users and delete
 	for _, user := range brivo.Data {
 		wg.Add(1)
+		semaphore <- true
 		go func(u models.BrivoUser) {
-			defer wg.Done()
+			defer func() {
+				<-semaphore
+				wg.Done()
+			}()
 			if err := u.DeleteUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				fmt.Printf("Error deleting user %d: %s\n", u.ID, err)
 			}
+			time.Sleep(time.Second * 1)
 		}(user)
 	}
 
 	// Loop over all credentials and delete
 	for _, cred := range creds.Data {
 		wg.Add(1)
+		semaphore <- true
 		go func(c models.Credential) {
-			defer wg.Done()
+			defer func() {
+				<-semaphore
+				wg.Done()
+			}()
 			if err := c.DeleteCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				fmt.Printf("Error deleting credential %d: %s\n", c.ID, err)
 			}
+			time.Sleep(time.Second * 1)
 		}(cred)
 	}
+
 	wg.Wait()
 
 	fmt.Println("Nuke completed. Check error logs for output.")
