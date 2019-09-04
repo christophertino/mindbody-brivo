@@ -8,6 +8,7 @@ package models
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	utils "github.com/christophertino/mindbody-brivo"
@@ -76,6 +77,10 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 		return nil
 	// Handle specific error codes from the API server
 	case *utils.JSONError:
+		// Unauthorized: Invalid token
+		if err.Code == 401 {
+			return fmt.Errorf("%d", http.StatusUnauthorized)
+		}
 		// User does not exist: Create new user
 		if err.Code == 404 {
 			// Build event data into Brivo user
