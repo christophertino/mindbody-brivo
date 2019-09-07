@@ -9,6 +9,7 @@ package clean
 import (
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/christophertino/mindbody-brivo/models"
@@ -21,6 +22,7 @@ func Nuke(config *models.Config) {
 		auth  models.Auth
 		brivo models.Brivo
 		creds models.CredentialList
+		wg    sync.WaitGroup
 	)
 
 	// Generate Brivo access token
@@ -38,20 +40,20 @@ func Nuke(config *models.Config) {
 		log.Fatalf("Error fetching Brivo credentials: %s", err)
 	}
 
+	time.Sleep(time.Second * 1)
+
 	// Handle rate limiting. Brivo rate limit is 20 calls/second
 	const rateLimit = 20
 	semaphore := make(chan bool, rateLimit)
 
-	// Track execution status of routines
-	doneCh := make(chan bool)
-
 	// Loop over all users and delete
 	for _, user := range brivo.Data {
+		wg.Add(1)
 		semaphore <- true
 		go func(u models.BrivoUser) {
 			defer func() {
 				<-semaphore
-				doneCh <- true
+				wg.Done()
 			}()
 			if err := u.DeleteUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				fmt.Printf("Error deleting user %d: %s\n", u.ID, err)
@@ -62,11 +64,12 @@ func Nuke(config *models.Config) {
 
 	// Loop over all credentials and delete
 	for _, cred := range creds.Data {
+		wg.Add(1)
 		semaphore <- true
 		go func(c models.Credential) {
 			defer func() {
 				<-semaphore
-				doneCh <- true
+				wg.Done()
 			}()
 			if err := c.DeleteCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				fmt.Printf("Error deleting credential %d: %s\n", c.ID, err)
@@ -76,9 +79,7 @@ func Nuke(config *models.Config) {
 	}
 
 	// Wait for all routines to finish and close
-	for len(doneCh) > 0 {
-		<-doneCh
-	}
+	wg.Wait()
 
 	fmt.Println("Nuke completed. Check error logs for output.")
 }
