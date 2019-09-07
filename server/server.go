@@ -50,7 +50,7 @@ func Launch(config *models.Config) {
 	router.HandleFunc("/api/v1/user", func(rw http.ResponseWriter, req *http.Request) {
 		fmt.Println("Received HEAD Request. Webhook validation successful")
 		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusNoContent) // Respond with 204
+		rw.WriteHeader(http.StatusAccepted) // Respond with 202
 	}).Methods(http.MethodHead)
 
 	// Set default handler
@@ -131,7 +131,7 @@ func processEvent(event *models.Event, config *models.Config) {
 				// Stash the current event in the error channel
 				errChan <- event
 				// Handle token refresh
-				go doRefresh(config)
+				doRefresh(config)
 				break
 			}
 			fmt.Printf("Error creating/updating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
@@ -145,7 +145,7 @@ func processEvent(event *models.Event, config *models.Config) {
 				// Stash the current event in the error channel
 				errChan <- event
 				// Handle token refresh
-				go doRefresh(config)
+				doRefresh(config)
 				break
 			}
 			fmt.Printf("Error deactivating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)

@@ -64,12 +64,12 @@ $ go run cmd/server/main.go
 #### Developing Locally
 
 ```sh
-# Compile the webhook application
+# Compile the server application
 $ go build -o bin/server -v cmd/server/main.go
 ```
 
 ```sh
-# Run webhook application locally
+# Run server application locally
 $ heroku local web
 ```
 
@@ -77,7 +77,6 @@ $ heroku local web
 ```sh
 $ git push heroku master
 ```
-
 
 ### Clear Brivo OnAir Development Environment
 
