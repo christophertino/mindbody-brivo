@@ -7,9 +7,9 @@
 package models
 
 import (
-	"encoding/hex"
 	"fmt"
 	"net/http"
+	"regexp"
 
 	utils "github.com/christophertino/mindbody-brivo"
 )
@@ -95,9 +95,12 @@ func (mbUser *MindBodyUser) buildUser(eventData EventUserData) {
 }
 
 // IsValidID checks to make sure MindBodyUser.ID and EventUserData.ClientID
-// are valid hexadecimal. If the ID value is not a hex, that means the user has
+// are valid 8 digit hex values. If the ID value does not match, that means the user has
 // not been assigned a MINDBODY security bracelet and should not be added to Brivo.
 func IsValidID(clientID string) bool {
-	_, err := hex.DecodeString(clientID)
-	return err == nil
+	match, err := regexp.MatchString("^[0-9a-f]{8}$", clientID)
+	if err != nil {
+		return false
+	}
+	return match
 }
