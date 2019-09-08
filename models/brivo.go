@@ -97,6 +97,38 @@ func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error
 	return nil
 }
 
+// ListUsersWithinGroup builds the Brivo data model with user data for a specific GroupID
+func (brivo *Brivo) ListUsersWithinGroup(groupID int, brivoAPIKey string, brivoAccessToken string) error {
+	var (
+		count    = 0
+		pageSize = 100 // Max 100
+		results  []BrivoUser
+	)
+	for {
+		// Create HTTP request
+		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/groups/%d/users?offset=%d&pageSize:%d", groupID, count, pageSize), nil)
+		if err != nil {
+			return fmt.Errorf("Error creating HTTP request: %s", err)
+		}
+		req.Header.Add("Content-Type", "application/json")
+		req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
+		req.Header.Add("api-key", brivoAPIKey)
+
+		if err = utils.DoRequest(req, brivo); err != nil {
+			return err
+		}
+
+		results = append(results, brivo.Data...)
+		count += brivo.PageSize
+		if count >= brivo.Count {
+			break
+		}
+	}
+	brivo.Data = results
+
+	return nil
+}
+
 // CreateUsers will iterate over all MINDBODY users, convert them to Brivo users
 // and POST to them Brivo API along with credential and group assignments
 func (brivo *Brivo) CreateUsers(mb MindBody, config Config, auth Auth) {

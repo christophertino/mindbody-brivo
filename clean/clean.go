@@ -40,6 +40,7 @@ func Nuke(config *models.Config) {
 		log.Fatalf("Error fetching Brivo credentials: %s", err)
 	}
 
+	// Allow Brivo rate limit to reset
 	time.Sleep(time.Second * 1)
 
 	// Handle rate limiting. Brivo rate limit is 20 calls/second

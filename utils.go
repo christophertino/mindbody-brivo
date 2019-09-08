@@ -27,11 +27,15 @@ func (e *JSONError) Error() string {
 // DoRequest is a utility function for making and handling async requests.
 // It accepts an http.Request and `output` as pointer to structure that will Unmarshal into.
 func DoRequest(req *http.Request, output interface{}) error {
-	// Proxy Debugging
-	// var PTransport = &http.Transport{Proxy: http.ProxyFromEnvironment}
-	// client := http.Client{Transport: PTransport}
-
 	var client http.Client
+
+	// Proxy Debugging
+	// Enable proxy: export https_proxy=“http://localhost:8888”
+	if os.Getenv("PROXY") == "true" {
+		var PTransport = &http.Transport{Proxy: http.ProxyFromEnvironment}
+		client = http.Client{Transport: PTransport}
+	}
+	// Disable proxy: unset https_proxy
 
 	// Make request
 	res, err := client.Do(req)

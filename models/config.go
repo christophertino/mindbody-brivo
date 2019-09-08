@@ -32,7 +32,9 @@ type Config struct {
 	MindbodySite                string
 
 	Debug bool
+	Proxy bool
 	Port  string
+	Env   string
 }
 
 // GetConfig loads the environment variables into Config. Uses Config Vars on
@@ -60,7 +62,10 @@ func (config *Config) GetConfig() {
 	config.MindbodySite = getEnvStrings("mindbody_site", "-99")
 
 	config.Debug, _ = strconv.ParseBool(getEnvStrings("DEBUG", "true"))
+	config.Proxy, _ = strconv.ParseBool(getEnvStrings("PROXY", "false"))
 	config.Port = getEnvStrings("PORT", "")
+	config.Env = getEnvStrings("ENV", "development")
+
 }
 
 // Base64Encoded credentials for Authorization header

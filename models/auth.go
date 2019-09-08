@@ -66,7 +66,7 @@ func (auth *Auth) Authenticate(config *Config) error {
 	for i := 0; i < 2; i++ {
 		select {
 		case err := <-errCh:
-			return fmt.Errorf("Token fetch failed with error: %g", err)
+			return err
 		case <-doneCh:
 			fmt.Println("Token fetch success!")
 		}
