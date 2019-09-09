@@ -41,8 +41,8 @@ type CredentialFormat struct {
 	ID int `json:"id"`
 }
 
-// Create new Brivo access credential. If the credential already exists, return the ID
-func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken string) (int, error) {
+// CreateCredential will create new Brivo access credential. If the credential already exists, return the ID
+func (cred *Credential) CreateCredential(brivoAPIKey string, brivoAccessToken string) (int, error) {
 	// Build request body JSON
 	bytesMessage, err := json.Marshal(cred)
 	if err != nil {
@@ -78,9 +78,9 @@ func (cred *Credential) createCredential(brivoAPIKey string, brivoAccessToken st
 	}
 }
 
-// Generate a credential that uses MINDBODY ExternalID
+// GenerateCredential will generate a credential that uses MINDBODY ExternalID
 // in an exceptable format for Brivo
-func generateCredential(externalID string) *Credential {
+func GenerateCredential(externalID string) *Credential {
 	cred := Credential{
 		CredentialFormat: CredentialFormat{
 			ID: 110, // Unknown Format
@@ -124,9 +124,11 @@ func (creds *CredentialList) GetCredentials(brivoAPIKey string, brivoAccessToken
 		results  []Credential
 	)
 
+	utils.Logger("Fetching all Brivo credentials...")
+
 	for {
 		// Create HTTP request
-		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/credentials?offset=%d&pageSize:%d", count, pageSize), nil)
+		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/credentials?offset=%d&pageSize=%d", count, pageSize), nil)
 		if err != nil {
 			return fmt.Errorf("Error creating HTTP request: %s", err)
 		}
@@ -138,6 +140,8 @@ func (creds *CredentialList) GetCredentials(brivoAPIKey string, brivoAccessToken
 			return err
 		}
 
+		utils.Logger(fmt.Sprintf("Got credentials %d of %d", count, creds.Count))
+
 		results = append(results, creds.Data...)
 		count += creds.PageSize
 		if count >= creds.Count {
@@ -146,6 +150,8 @@ func (creds *CredentialList) GetCredentials(brivoAPIKey string, brivoAccessToken
 	}
 
 	creds.Data = results
+
+	utils.Logger(fmt.Sprintf("Completed fetching %d Brivo credentials.", creds.Count))
 
 	return nil
 }

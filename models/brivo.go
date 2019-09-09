@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
 
 	utils "github.com/christophertino/mindbody-brivo"
 )
@@ -52,24 +51,21 @@ type phoneNumber struct {
 	NumberType string `json:"type"`
 }
 
-type outputLog struct {
-	success int
-	failed  map[string]string
-}
-
-var brivoIDSet map[string]bool // keep track of all existing IDs for quick lookup
+var brivoIDSet = make(map[string]bool) // keep track of all existing IDs for quick lookup
 
 // ListUsers builds the Brivo data model with user data
 func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error {
 	var (
-		count      = 0
-		pageSize   = 100 // Max 100
-		brivoIDSet = make(map[string]bool)
-		results    []BrivoUser
+		count    = 0
+		pageSize = 100 // Max 100
+		results  []BrivoUser
 	)
+
+	utils.Logger("Fetching all Brivo users...")
+
 	for {
 		// Create HTTP request
-		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/users?offset=%d&pageSize:%d", count, pageSize), nil)
+		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/users?offset=%d&pageSize=%d", count, pageSize), nil)
 		if err != nil {
 			return fmt.Errorf("Error creating HTTP request: %s", err)
 		}
@@ -86,6 +82,8 @@ func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error
 			brivoIDSet[element.ExternalID] = true
 		}
 
+		utils.Logger(fmt.Sprintf("Got Brivo users %d of %d", count, brivo.Count))
+
 		results = append(results, brivo.Data...)
 		count += brivo.PageSize
 		if count >= brivo.Count {
@@ -93,6 +91,8 @@ func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error
 		}
 	}
 	brivo.Data = results
+
+	utils.Logger(fmt.Sprintf("Completed fetching %d Brivo users.", brivo.Count))
 
 	return nil
 }
@@ -104,9 +104,12 @@ func (brivo *Brivo) ListUsersWithinGroup(groupID int, brivoAPIKey string, brivoA
 		pageSize = 100 // Max 100
 		results  []BrivoUser
 	)
+
+	utils.Logger(fmt.Sprintf("Fetching all Brivo users from group %d...", groupID))
+
 	for {
 		// Create HTTP request
-		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/groups/%d/users?offset=%d&pageSize:%d", groupID, count, pageSize), nil)
+		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/groups/%d/users?offset=%d&pageSize=%d", groupID, count, pageSize), nil)
 		if err != nil {
 			return fmt.Errorf("Error creating HTTP request: %s", err)
 		}
@@ -118,6 +121,8 @@ func (brivo *Brivo) ListUsersWithinGroup(groupID int, brivoAPIKey string, brivoA
 			return err
 		}
 
+		utils.Logger(fmt.Sprintf("Got Brivo user %d of %d", count, brivo.Count))
+
 		results = append(results, brivo.Data...)
 		count += brivo.PageSize
 		if count >= brivo.Count {
@@ -126,77 +131,13 @@ func (brivo *Brivo) ListUsersWithinGroup(groupID int, brivoAPIKey string, brivoA
 	}
 	brivo.Data = results
 
+	utils.Logger(fmt.Sprintf("Completed fetching %d Brivo users.", brivo.Count))
+
 	return nil
 }
 
-// CreateUsers will iterate over all MINDBODY users, convert them to Brivo users
-// and POST to them Brivo API along with credential and group assignments
-func (brivo *Brivo) CreateUsers(mb MindBody, config Config, auth Auth) {
-	var (
-		wg sync.WaitGroup
-		o  outputLog
-	)
-	o.failed = make(map[string]string)
-
-	// Iterate over all MINDBODY users
-	for i := range mb.Clients {
-		var user BrivoUser
-		mbUser := mb.Clients[i]
-
-		// Validate that the ClientID is a valid hex ID
-		if !IsValidID(mbUser.ID) {
-			fmt.Printf("User %s is not a valid hex ID", mbUser.ID)
-			return
-		}
-
-		// Convert MINDBODY user to Brivo user
-		user.buildUser(mbUser)
-
-		// Make Brivo API calls
-		wg.Add(1)
-		go func(u BrivoUser) {
-			defer wg.Done()
-			fmt.Println("Creating user...")
-
-			// Create a new user
-			if err := u.createUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("Error creating user %s with error: %s\n", u.ExternalID, err)
-				o.failed[u.ExternalID] = "Create User"
-				return
-			}
-
-			// Create new Brivo credential for this user
-			cred := generateCredential(u.ExternalID)
-			credID, err := cred.createCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-			if err != nil {
-				fmt.Printf("Error creating credential for user %s with error: %s\n", u.ExternalID, err)
-				o.failed[u.ExternalID] = "Create Credential"
-				return
-			}
-
-			// Assign credential to user
-			if err := u.assignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("Error assigning credential to user %s with error: %s\n", u.ExternalID, err)
-				o.failed[u.ExternalID] = "Assign Credential"
-				return
-			}
-
-			// Assign user to group
-			if err := u.assignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-				fmt.Printf("Error assigning user %s to group with error: %s\n", u.ExternalID, err)
-				o.failed[u.ExternalID] = "Assign Group"
-				return
-			}
-			o.success++
-			fmt.Printf("Successfully created Brivo user %s\n", u.ExternalID)
-		}(user)
-		wg.Wait()
-	}
-	o.printLog()
-}
-
-// Build a Brivo user from MINDBODY user data
-func (user *BrivoUser) buildUser(mbUser MindBodyUser) {
+// BuildUser will build a Brivo user from MINDBODY user data
+func (user *BrivoUser) BuildUser(mbUser MindBodyUser) {
 	var (
 		userEmail email
 		userPhone phoneNumber
@@ -229,8 +170,8 @@ func (user *BrivoUser) buildUser(mbUser MindBodyUser) {
 	}
 }
 
-// Create a new Brivo user
-func (user *BrivoUser) createUser(brivoAPIKey string, brivoAccessToken string) error {
+// CreateUser creates a new Brivo user
+func (user *BrivoUser) CreateUser(brivoAPIKey string, brivoAccessToken string) error {
 	// Check to see if user already exists
 	if brivoIDSet[user.ExternalID] == true {
 		return fmt.Errorf("User already exists")
@@ -262,8 +203,8 @@ func (user *BrivoUser) createUser(brivoAPIKey string, brivoAccessToken string) e
 	return nil
 }
 
-// Assign credentialID to new user
-func (user *BrivoUser) assignUserCredential(credID int, brivoAPIKey string, brivoAccessToken string) error {
+// AssignUserCredential assigns the credentialID to a user
+func (user *BrivoUser) AssignUserCredential(credID int, brivoAPIKey string, brivoAccessToken string) error {
 	// Create HTTP request
 	req, err := http.NewRequest("PUT", fmt.Sprintf("https://api.brivo.com/v1/api/users/%d/credentials/%d", user.ID, credID), nil)
 	if err != nil {
@@ -281,8 +222,8 @@ func (user *BrivoUser) assignUserCredential(credID int, brivoAPIKey string, briv
 	return nil
 }
 
-// Assign user to group
-func (user *BrivoUser) assignUserGroup(groupID int, brivoAPIKey string, brivoAccessToken string) error {
+// AssignUserGroup assigns the user to groupID
+func (user *BrivoUser) AssignUserGroup(groupID int, brivoAPIKey string, brivoAccessToken string) error {
 	// Create HTTP request
 	req, err := http.NewRequest("PUT", fmt.Sprintf("https://api.brivo.com/v1/api/groups/%d/users/%d", groupID, user.ID), nil)
 	if err != nil {
@@ -385,14 +326,4 @@ func (user *BrivoUser) DeleteUser(brivoAPIKey string, brivoAccessToken string) e
 	}
 
 	return nil
-}
-
-// Print output log for Sync app
-func (o *outputLog) printLog() {
-	fmt.Println("---------- OUTPUT LOG ----------")
-	fmt.Println("Users Created Successfully:", o.success)
-	fmt.Println("Users Failed:", len(o.failed))
-	for index, value := range o.failed {
-		fmt.Printf("External ID: %s Reason: %s\n", index, value)
-	}
 }

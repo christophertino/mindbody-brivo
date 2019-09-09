@@ -44,9 +44,12 @@ type MindBodyUser struct {
 func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 	var (
 		count   = 0
-		limit   = 5 // Max 200
+		limit   = 200 // Max 200
 		results []MindBodyUser
 	)
+
+	utils.Logger("Fetching all MINDBODY clients...")
+
 	for {
 		// Create HTTP request
 		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.mindbodyonline.com/public/v6/client/clients?limit=%d&offset=%d", limit, count), nil)
@@ -62,19 +65,19 @@ func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 			return err
 		}
 
-		// For testing purposes just get a small set of users
-		if config.Debug == true {
-			break
-		}
+		utils.Logger(fmt.Sprintf("Got MINDBODY clients %d of %d", count, mb.PaginationResponse.TotalResults))
 
 		results = append(results, mb.Clients...)
 		count += mb.PaginationResponse.PageSize
+
 		if count >= mb.PaginationResponse.TotalResults {
 			break
 		}
 	}
 
 	mb.Clients = results
+
+	utils.Logger(fmt.Sprintf("Completed fetching %d MINDBODY clients.", mb.PaginationResponse.TotalResults))
 
 	return nil
 }
@@ -98,7 +101,7 @@ func (mbUser *MindBodyUser) buildUser(eventData EventUserData) {
 // are valid 8 digit hex values. If the ID value does not match, that means the user has
 // not been assigned a MINDBODY security bracelet and should not be added to Brivo.
 func IsValidID(clientID string) bool {
-	match, err := regexp.MatchString("^[0-9a-f]{8}$", clientID)
+	match, err := regexp.MatchString("^[0-9a-fA-F]{8}$", clientID)
 	if err != nil {
 		return false
 	}

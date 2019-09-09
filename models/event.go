@@ -54,7 +54,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 	case nil:
 		// Build event data into Brivo user
 		mbUser.buildUser(event.EventData)
-		brivoUser.buildUser(mbUser)
+		brivoUser.BuildUser(mbUser)
 		// Update Brivo ID from existing user
 		brivoUser.ID = existingUser.ID
 
@@ -85,27 +85,27 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 		if err.Code == 404 {
 			// Build event data into Brivo user
 			mbUser.buildUser(event.EventData)
-			brivoUser.buildUser(mbUser)
+			brivoUser.BuildUser(mbUser)
 
 			// Create a new user
-			if err := brivoUser.createUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+			if err := brivoUser.CreateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				return fmt.Errorf("Error creating user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
 			// Create new Brivo credential for this user
-			cred := generateCredential(brivoUser.ExternalID)
-			credID, err := cred.createCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+			cred := GenerateCredential(brivoUser.ExternalID)
+			credID, err := cred.CreateCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 			if err != nil {
 				return fmt.Errorf("Error creating credential for user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
 			// Assign credential to user
-			if err := brivoUser.assignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+			if err := brivoUser.AssignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				return fmt.Errorf("Error assigning credential to user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
 			// Assign user to group
-			if err := brivoUser.assignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+			if err := brivoUser.AssignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				return fmt.Errorf("Error assigning user %s to group with error: %s", brivoUser.ExternalID, err)
 			}
 

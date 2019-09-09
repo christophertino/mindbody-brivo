@@ -51,6 +51,15 @@ func Nuke(config *models.Config) {
 	for _, user := range brivo.Data {
 		wg.Add(1)
 		semaphore <- true
+
+		// Check for valid Brivo AccessToken
+		if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
+			if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
+				log.Fatalln("Error refreshing Brivo AUTH token", err)
+			}
+			fmt.Println("Refreshed Brivo AUTH token")
+		}
+
 		go func(u models.BrivoUser) {
 			defer func() {
 				<-semaphore
@@ -67,6 +76,15 @@ func Nuke(config *models.Config) {
 	for _, cred := range creds.Data {
 		wg.Add(1)
 		semaphore <- true
+
+		// Check for valid Brivo AccessToken
+		if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
+			if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
+				log.Fatalln("Error refreshing Brivo AUTH token", err)
+			}
+			fmt.Println("Refreshed Brivo AUTH token")
+		}
+
 		go func(c models.Credential) {
 			defer func() {
 				<-semaphore
