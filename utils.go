@@ -47,7 +47,7 @@ func DoRequest(req *http.Request, output interface{}) error {
 	// Handle response
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return fmt.Errorf("Error reading response: %s", err)
+		return err
 	}
 
 	// Check for error response

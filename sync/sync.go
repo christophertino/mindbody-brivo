@@ -20,6 +20,7 @@ import (
 
 // Creates a log of users created/failed during sync
 type outputLog struct {
+	access  sync.Mutex
 	success int
 	failed  map[string]string
 }
@@ -69,13 +70,17 @@ func GetAllUsers(config *models.Config) {
 }
 
 // Iterate over all MINDBODY users, convert them to Brivo users
-// and POST to them Brivo API along with credential and group assignments
+// and POST to the Brivo API along with credential and group assignments
 func createUsers(config *models.Config) {
-	o.failed = make(map[string]string)
+	// Handle rate limiting
+	semaphore = make(chan bool, config.BrivoRateLimit)
 
-	// Handle rate limiting. Brivo rate limit is 20 calls/second
-	const rateLimit = 20
-	semaphore = make(chan bool, rateLimit)
+	// Create buffer channel to handle errors from processUser. Set buffer to Brivo rate limit
+	errChan = make(chan *models.BrivoUser, config.BrivoRateLimit)
+	isRefreshing = false
+
+	// Instantiate outputLog failed map
+	o.failed = make(map[string]string)
 
 	// Iterate over all MINDBODY users
 	for i := range mb.Clients {
@@ -84,8 +89,7 @@ func createUsers(config *models.Config) {
 
 		// Validate that the ClientID is a valid hex ID
 		if !models.IsValidID(mbUser.ID) {
-			fmt.Printf("User %s is not a valid hex ID\n", mbUser.ID)
-			o.failed[mbUser.ID] = "Invalid Hex ID"
+			// o.failed[mbUser.ID] = "Invalid Hex ID"
 			continue
 		}
 
@@ -101,84 +105,107 @@ func createUsers(config *models.Config) {
 			errChan <- &user
 		}
 	}
+
+	wg.Wait()
+
+	o.printLog()
+	fmt.Println("Sync completed. See sync_output.log")
 }
 
 // Make Brivo API calls
 func processUser(user *models.BrivoUser, config *models.Config) {
 	wg.Add(1)
-	semaphore <- true
+	// Add four values to our rate limit buffer, since we make 4 Brivo API per user
+	for i := 0; i < 4; i++ {
+		semaphore <- true
+	}
 	go func(u models.BrivoUser) {
 		defer func() {
-			<-semaphore
 			wg.Done()
+			// Dequeue the semaphore
+			for i := 0; i < 4; i++ {
+				<-semaphore
+			}
 		}()
 
 		// Create a new user
 		err := u.CreateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-		switch err := err.(type) {
+		switch e := err.(type) {
 		case nil:
 			break
 		case *utils.JSONError:
-			if err.Error() == "401" {
+			if e.Code == 401 {
 				errChan <- user
 				doRefresh(config)
 				return
 			}
+			fmt.Printf("Error creating user %s with error code %d and body: %s\n", u.ExternalID, e.Code, e.Body)
+			o.failure(u.ExternalID, fmt.Sprintf("Create User: %s", e.Body))
+			return
 		default:
-			fmt.Printf("Error creating user %s with error: %s\n", u.ExternalID, err)
-			o.failed[u.ExternalID] = "Create User"
+			fmt.Printf("Error creating user %s with error: %s\n", u.ExternalID, e.Error())
+			o.failure(u.ExternalID, fmt.Sprintf("Create User: %s", e.Error()))
 			return
 		}
 
 		// Create new Brivo credential for this user
 		cred := models.GenerateCredential(u.ExternalID)
 		credID, err := cred.CreateCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-		switch err := err.(type) {
+		switch e := err.(type) {
 		case nil:
 			break
 		case *utils.JSONError:
-			if err.Error() == "401" {
+			if e.Code == 401 {
 				errChan <- user
 				doRefresh(config)
 				return
 			}
+			fmt.Printf("Error creating credential for user %s with error code %d and body: %s\n", u.ExternalID, e.Code, e.Body)
+			o.failure(u.ExternalID, fmt.Sprintf("Create Credential: %s", e.Body))
+			return
 		default:
-			fmt.Printf("Error creating credential for user %s with error: %s\n", u.ExternalID, err)
-			o.failed[u.ExternalID] = "Create Credential"
+			fmt.Printf("Error creating credential for user %s with error: %s\n", u.ExternalID, e.Error())
+			o.failure(u.ExternalID, fmt.Sprintf("Create Credential: %s", e.Error()))
 			return
 		}
 
 		// Assign credential to user
 		err = u.AssignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-		switch err := err.(type) {
+		switch e := err.(type) {
 		case nil:
 			break
 		case *utils.JSONError:
-			if err.Error() == "401" {
+			if e.Code == 401 {
 				errChan <- user
 				doRefresh(config)
 				return
 			}
+			fmt.Printf("Error assigning credential to user %s with error code %d and body: %s\n", u.ExternalID, e.Code, e.Body)
+			o.failure(u.ExternalID, fmt.Sprintf("Assign Credential: %s", e.Body))
+			return
 		default:
-			fmt.Printf("Error assigning credential to user %s with error: %s\n", u.ExternalID, err)
-			o.failed[u.ExternalID] = "Assign Credential"
+			fmt.Printf("Error assigning credential to user %s with error: %s\n", u.ExternalID, e.Error())
+			o.failure(u.ExternalID, fmt.Sprintf("Assign Credential: %s", e.Error()))
 			return
 		}
 
 		// Assign user to group
 		err = u.AssignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-		switch err := err.(type) {
+		switch e := err.(type) {
 		case nil:
 			break
 		case *utils.JSONError:
-			if err.Error() == "401" {
+			if e.Code == 401 {
 				errChan <- user
 				doRefresh(config)
 				return
 			}
+			fmt.Printf("Error assigning user %s to group with error code %d and body: %s\n", u.ExternalID, e.Code, e.Body)
+			o.failure(u.ExternalID, fmt.Sprintf("Assign Group: %s", e.Body))
+			return
 		default:
-			fmt.Printf("Error assigning user %s to group with error: %s\n", u.ExternalID, err)
-			o.failed[u.ExternalID] = "Assign Group"
+			fmt.Printf("Error assigning user %s to group with error: %s\n", u.ExternalID, e.Error())
+			o.failure(u.ExternalID, fmt.Sprintf("Assign Group: %s", e.Error()))
 			return
 		}
 
@@ -186,10 +213,6 @@ func processUser(user *models.BrivoUser, config *models.Config) {
 		fmt.Printf("Successfully created Brivo user %s\n", u.ExternalID)
 		time.Sleep(time.Second * 1)
 	}(*user)
-
-	wg.Wait()
-
-	o.printLog()
 }
 
 // Check current refreshing status and process new refresh token
@@ -216,6 +239,13 @@ loop:
 	}
 
 	isRefreshing = false
+}
+
+// Uses mutual exclusion for thread-safe update to failed map[]
+func (o *outputLog) failure(userID string, reason string) {
+	o.access.Lock()
+	o.failed[userID] = reason
+	o.access.Unlock()
 }
 
 // PrintLog generates an output log file for Sync app

@@ -31,15 +31,6 @@ var (
 
 // Launch will start the web server and initialize API routes
 func Launch(config *models.Config) {
-	// Generate Brivo access token. MINDBODY token not needed
-	if err := auth.BrivoToken.GetBrivoToken(config); err != nil {
-		log.Fatalf("Error generating Brivo access token: %s", err)
-	}
-
-	// Create buffer channel to handle errors from the userHandler. Set buffer to Brivo rate limit
-	errChan = make(chan *models.Event, 50)
-	isRefreshing = false
-
 	router := mux.NewRouter()
 
 	// Handle webhook events related to MINDBODY clients
@@ -62,6 +53,15 @@ func Launch(config *models.Config) {
 
 	server := negroni.New()
 	server.UseHandler(router)
+
+	// Generate Brivo access token. MINDBODY token not needed
+	if err := auth.BrivoToken.GetBrivoToken(config); err != nil {
+		log.Fatalf("Error generating Brivo access token: %s", err)
+	}
+
+	// Create buffer channel to handle errors from the userHandler
+	errChan = make(chan *models.Event, config.BrivoRateLimit)
+	isRefreshing = false
 
 	fmt.Printf("Listening for webhook events at PORT %s\n", config.Port)
 

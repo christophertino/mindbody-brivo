@@ -43,9 +43,8 @@ func Nuke(config *models.Config) {
 	// Allow Brivo rate limit to reset
 	time.Sleep(time.Second * 1)
 
-	// Handle rate limiting. Brivo rate limit is 20 calls/second
-	const rateLimit = 20
-	semaphore := make(chan bool, rateLimit)
+	// Handle rate limiting
+	semaphore := make(chan bool, config.BrivoRateLimit)
 
 	// Loop over all users and delete
 	for _, user := range brivo.Data {

@@ -60,13 +60,13 @@ func (cred *Credential) CreateCredential(brivoAPIKey string, brivoAccessToken st
 
 	var r map[string]interface{}
 	err = utils.DoRequest(req, &r)
-	switch err := err.(type) {
+	switch e := err.(type) {
 	case nil:
 		// Return the new credential ID
 		return int(r["id"].(float64)), nil
 	case *utils.JSONError:
 		// If the credential already exists we need to fetch it's ID from Brivo
-		if err.Code == 400 && strings.Contains(err.Body["message"].(string), "Duplicate Credential Found") {
+		if e.Code == 400 && strings.Contains(e.Body["message"].(string), "Duplicate Credential Found") {
 			fmt.Printf("Credential ID %s already exists.\n", cred.ReferenceID)
 			return getCredentialByID(cred.ReferenceID, brivoAPIKey, brivoAccessToken)
 		}

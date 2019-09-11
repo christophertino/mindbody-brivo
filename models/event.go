@@ -49,7 +49,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 	// Query the user on Brivo using the MINDBODY ExternalID
 	var existingUser BrivoUser
 	err := existingUser.getUserByID(event.EventData.ClientID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-	switch err := err.(type) {
+	switch e := err.(type) {
 	// User already exists: Update user
 	case nil:
 		// Build event data into Brivo user
@@ -78,11 +78,11 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 	// Handle specific error codes from the API server
 	case *utils.JSONError:
 		// Unauthorized: Invalid token
-		if err.Code == 401 {
+		if e.Code == 401 {
 			return fmt.Errorf("%d", http.StatusUnauthorized)
 		}
 		// User does not exist: Create new user
-		if err.Code == 404 {
+		if e.Code == 404 {
 			// Build event data into Brivo user
 			mbUser.buildUser(event.EventData)
 			brivoUser.BuildUser(mbUser)
@@ -112,7 +112,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 			fmt.Printf("Successfully created Brivo user %s\n", brivoUser.ExternalID)
 			return nil
 		}
-		return fmt.Errorf("%s", err.Body)
+		return fmt.Errorf("%s", e.Body)
 	// General error
 	default:
 		return err
