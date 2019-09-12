@@ -14,12 +14,17 @@ import (
 	"os"
 )
 
+// Clients and Transports are safe for concurrent use by multiple goroutines and for efficiency should only be created once and re-used
+var client = &http.Client{}
+var transport = &http.Transport{Proxy: http.ProxyFromEnvironment}
+
 // JSONError is a custom error type for diagnosing server responses
 type JSONError struct {
 	Code int
 	Body map[string]interface{}
 }
 
+// Render error message to string
 func (e *JSONError) Error() string {
 	return fmt.Sprintf("Error code %d and output:\n%+v\n", e.Code, e.Body)
 }
@@ -27,13 +32,10 @@ func (e *JSONError) Error() string {
 // DoRequest is a utility function for making and handling async requests.
 // It accepts an http.Request and `output` as pointer to structure that will Unmarshal into.
 func DoRequest(req *http.Request, output interface{}) error {
-	var client http.Client
-
 	// Proxy Debugging
-	// Enable proxy: export https_proxy=“http://localhost:8888”
+	// Enable proxy: export https_proxy="http://localhost:8888"
 	if os.Getenv("PROXY") == "true" {
-		var PTransport = &http.Transport{Proxy: http.ProxyFromEnvironment}
-		client = http.Client{Transport: PTransport}
+		client = &http.Client{Transport: transport}
 	}
 	// Disable proxy: unset https_proxy
 

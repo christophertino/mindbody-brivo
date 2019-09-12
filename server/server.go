@@ -137,7 +137,6 @@ func processEvent(event *models.Event, config *models.Config) {
 				break
 			}
 			fmt.Printf("Error creating/updating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
-			break
 		}
 	case "client.deactivated":
 		// Suspend an existing user
@@ -151,7 +150,6 @@ func processEvent(event *models.Event, config *models.Config) {
 				break
 			}
 			fmt.Printf("Error deactivating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
-			break
 		}
 	default:
 		fmt.Printf("EventID %s not found\n", event.EventID)
@@ -170,8 +168,8 @@ func doRefresh(config *models.Config) {
 	}
 	utils.Logger("Refreshed Brivo AUTH token")
 
-loop:
 	// Listen for new events in the error channel
+loop:
 	for {
 		select {
 		case event := <-errChan:

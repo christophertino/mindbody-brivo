@@ -46,6 +46,8 @@ func Nuke(config *models.Config) {
 	// Handle rate limiting
 	semaphore := make(chan bool, config.BrivoRateLimit)
 
+	fmt.Println("Deleteing all Brivo users...")
+
 	// Loop over all users and delete
 	for _, user := range brivo.Data {
 		wg.Add(1)
@@ -70,6 +72,8 @@ func Nuke(config *models.Config) {
 			time.Sleep(time.Second * 1)
 		}(user)
 	}
+
+	fmt.Println("Deleteing all Brivo credentials...")
 
 	// Loop over all credentials and delete
 	for _, cred := range creds.Data {

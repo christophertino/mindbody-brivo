@@ -27,8 +27,9 @@ type outputLog struct {
 
 var (
 	auth         models.Auth
-	mb           models.MindBody
+	config       *models.Config
 	brivo        models.Brivo
+	mb           models.MindBody
 	wg           sync.WaitGroup
 	isRefreshing bool
 	semaphore    chan bool
@@ -37,7 +38,9 @@ var (
 )
 
 // GetAllUsers will fetch all existing users from MINDBODY and Brivo
-func GetAllUsers(config *models.Config) {
+func GetAllUsers(c *models.Config) {
+	config = c
+
 	if err := auth.Authenticate(config); err != nil {
 		fmt.Println("Error generating AUTH tokens:", err)
 		return
@@ -66,12 +69,12 @@ func GetAllUsers(config *models.Config) {
 	// fmt.Printf("MindBody Model: %+v\n Brivo Model: %+v\n", mb, brivo)
 
 	// Map existing user data from MINDBODY to Brivo
-	createUsers(config)
+	createUsers()
 }
 
 // Iterate over all MINDBODY users, convert them to Brivo users
 // and POST to the Brivo API along with credential and group assignments
-func createUsers(config *models.Config) {
+func createUsers() {
 	// Handle rate limiting
 	semaphore = make(chan bool, config.BrivoRateLimit)
 
@@ -99,7 +102,7 @@ func createUsers(config *models.Config) {
 		// Check current refresh status
 		if !isRefreshing {
 			// Process the event normally
-			processUser(&user, config)
+			processUser(&user)
 		} else {
 			// A refresh is currently taking place. Push the event into the error channel
 			errChan <- &user
@@ -113,132 +116,166 @@ func createUsers(config *models.Config) {
 }
 
 // Make Brivo API calls
-func processUser(user *models.BrivoUser, config *models.Config) {
+func processUser(user *models.BrivoUser) {
 	wg.Add(1)
-	// Add four values to our rate limit buffer, since we make 4 Brivo API per user
-	for i := 0; i < 4; i++ {
-		semaphore <- true
-	}
 	go func(u models.BrivoUser) {
-		defer func() {
-			wg.Done()
-			// Dequeue the semaphore
-			for i := 0; i < 4; i++ {
-				<-semaphore
-			}
-		}()
+		defer wg.Done()
 
-		// Create a new user
-		err := u.CreateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-		switch e := err.(type) {
-		case nil:
-			break
-		case *utils.JSONError:
-			if e.Code == 401 {
-				errChan <- user
-				doRefresh(config)
-				return
-			}
-			fmt.Printf("Error creating user %s with error code %d and body: %s\n", u.ExternalID, e.Code, e.Body)
-			o.failure(u.ExternalID, fmt.Sprintf("Create User: %s", e.Body))
-			return
-		default:
-			fmt.Printf("Error creating user %s with error: %s\n", u.ExternalID, e.Error())
-			o.failure(u.ExternalID, fmt.Sprintf("Create User: %s", e.Error()))
+		if err := createUser(&u); err != nil {
+			fmt.Println(err)
 			return
 		}
 
-		// Create new Brivo credential for this user
-		cred := models.GenerateCredential(u.ExternalID)
-		credID, err := cred.CreateCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-		switch e := err.(type) {
-		case nil:
-			break
-		case *utils.JSONError:
-			if e.Code == 401 {
-				errChan <- user
-				doRefresh(config)
-				return
-			}
-			fmt.Printf("Error creating credential for user %s with error code %d and body: %s\n", u.ExternalID, e.Code, e.Body)
-			o.failure(u.ExternalID, fmt.Sprintf("Create Credential: %s", e.Body))
-			return
-		default:
-			fmt.Printf("Error creating credential for user %s with error: %s\n", u.ExternalID, e.Error())
-			o.failure(u.ExternalID, fmt.Sprintf("Create Credential: %s", e.Error()))
+		credID, err := createCredential(&u)
+		if err != nil {
+			fmt.Println(err)
 			return
 		}
 
-		// Assign credential to user
-		err = u.AssignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-		switch e := err.(type) {
-		case nil:
-			break
-		case *utils.JSONError:
-			if e.Code == 401 {
-				errChan <- user
-				doRefresh(config)
-				return
-			}
-			fmt.Printf("Error assigning credential to user %s with error code %d and body: %s\n", u.ExternalID, e.Code, e.Body)
-			o.failure(u.ExternalID, fmt.Sprintf("Assign Credential: %s", e.Body))
-			return
-		default:
-			fmt.Printf("Error assigning credential to user %s with error: %s\n", u.ExternalID, e.Error())
-			o.failure(u.ExternalID, fmt.Sprintf("Assign Credential: %s", e.Error()))
+		if err := assignCredential(credID, &u); err != nil {
+			fmt.Println(err)
 			return
 		}
 
-		// Assign user to group
-		err = u.AssignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-		switch e := err.(type) {
-		case nil:
-			break
-		case *utils.JSONError:
-			if e.Code == 401 {
-				errChan <- user
-				doRefresh(config)
-				return
-			}
-			fmt.Printf("Error assigning user %s to group with error code %d and body: %s\n", u.ExternalID, e.Code, e.Body)
-			o.failure(u.ExternalID, fmt.Sprintf("Assign Group: %s", e.Body))
-			return
-		default:
-			fmt.Printf("Error assigning user %s to group with error: %s\n", u.ExternalID, e.Error())
-			o.failure(u.ExternalID, fmt.Sprintf("Assign Group: %s", e.Error()))
+		if err := assignGroup(&u); err != nil {
+			fmt.Println(err)
 			return
 		}
 
 		o.success++
 		fmt.Printf("Successfully created Brivo user %s\n", u.ExternalID)
-		time.Sleep(time.Second * 1)
 	}(*user)
+
+	// Respect Brivo rate limit
+	time.Sleep(time.Second * 1)
+}
+
+// Create a new Brivo user
+func createUser(user *models.BrivoUser) error {
+	semaphore <- true
+	defer func() {
+		<-semaphore
+	}()
+
+	err := user.CreateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+	switch e := err.(type) {
+	case nil:
+		return nil
+	case *utils.JSONError:
+		if e.Code == 401 {
+			errChan <- user
+			doRefresh()
+			return fmt.Errorf("Access token expired")
+		}
+	}
+	o.failure(user.ExternalID, fmt.Sprintf("Create User: %s", err.Error()))
+	return fmt.Errorf("Error creating user %s with error: %s", user.ExternalID, err.Error())
+}
+
+// Create new Brivo credential for this user
+func createCredential(user *models.BrivoUser) (int, error) {
+	semaphore <- true
+	defer func() {
+		<-semaphore
+	}()
+
+	cred := models.GenerateCredential(user.ExternalID)
+	credID, err := cred.CreateCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+	switch e := err.(type) {
+	case nil:
+		return credID, nil
+	case *utils.JSONError:
+		if e.Code == 401 {
+			errChan <- user
+			doRefresh()
+			return 0, fmt.Errorf("Access token expired")
+		}
+	}
+	o.failure(user.ExternalID, fmt.Sprintf("Create Credential: %s", err.Error()))
+	return 0, fmt.Errorf("Error creating credential for user %s with error: %s", user.ExternalID, err.Error())
+}
+
+// Assign credential to user
+func assignCredential(credID int, user *models.BrivoUser) error {
+	semaphore <- true
+	defer func() {
+		<-semaphore
+	}()
+
+	err := user.AssignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+	switch e := err.(type) {
+	case nil:
+		return nil
+	case *utils.JSONError:
+		if e.Code == 401 {
+			errChan <- user
+			doRefresh()
+			return fmt.Errorf("Access token expired")
+		}
+	}
+	o.failure(user.ExternalID, fmt.Sprintf("Assign Credential: %s", err.Error()))
+	return fmt.Errorf("Error assigning credential to user %s with error: %s", user.ExternalID, err.Error())
+}
+
+// Assign user to group
+func assignGroup(user *models.BrivoUser) error {
+	semaphore <- true
+	defer func() {
+		<-semaphore
+	}()
+
+	err := user.AssignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+	switch e := err.(type) {
+	case nil:
+		return nil
+	case *utils.JSONError:
+		if e.Code == 401 {
+			errChan <- user
+			doRefresh()
+			return fmt.Errorf("Access token expired")
+		}
+	}
+	o.failure(user.ExternalID, fmt.Sprintf("Assign Group: %s", err.Error()))
+	return fmt.Errorf("Error assigning user %s to group with error: %s", user.ExternalID, err.Error())
+}
+
+// Call Brivo and fetch a refreshed token
+func refreshToken() error {
+	semaphore <- true
+	defer func() {
+		<-semaphore
+	}()
+	if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
+		return fmt.Errorf("Error refreshing Brivo token: %s", err)
+	}
+	return nil
 }
 
 // Check current refreshing status and process new refresh token
-func doRefresh(config *models.Config) {
+func doRefresh() {
 	if isRefreshing {
 		return
 	}
+
 	isRefreshing = true
-	if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
-		fmt.Println("Error refreshing Brivo AUTH token:\n", err)
+	if err := refreshToken(); err != nil {
+		fmt.Println(err)
+		// TODO: potential unending loop scenario if Token API continuously fails
 		return
 	}
 	fmt.Println("Refreshed Brivo AUTH token")
+	isRefreshing = false
 
-loop:
 	// Listen for new events in the error channel
+loop:
 	for {
 		select {
 		case user := <-errChan:
-			processUser(user, config)
+			processUser(user)
 		default:
 			break loop
 		}
 	}
-
-	isRefreshing = false
 }
 
 // Uses mutual exclusion for thread-safe update to failed map[]
