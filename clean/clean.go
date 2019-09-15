@@ -19,10 +19,11 @@ import (
 // remove all existing users and credentials so that you can start fresh.
 func Nuke(config *models.Config) {
 	var (
-		auth  models.Auth
-		brivo models.Brivo
-		creds models.CredentialList
-		wg    sync.WaitGroup
+		auth         models.Auth
+		brivo        models.Brivo
+		creds        models.CredentialList
+		customFields models.CustomFields
+		wg           sync.WaitGroup
 	)
 
 	// Generate Brivo access token
@@ -30,8 +31,8 @@ func Nuke(config *models.Config) {
 		log.Fatalf("Error generating Brivo access token: %s", err)
 	}
 
-	// Get all Brivo users
-	if err := brivo.ListUsers(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+	// Get all Brivo users from Member Group
+	if err := brivo.ListUsersWithinGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 		log.Fatalln("Error fetching Brivo users", err)
 	}
 
@@ -48,6 +49,9 @@ func Nuke(config *models.Config) {
 
 	fmt.Println("Deleteing all Brivo users...")
 
+	// Keep track of which users we deleted
+	var brivoIDSet = make(map[string]bool)
+
 	// Loop over all users and delete
 	for _, user := range brivo.Data {
 		wg.Add(1)
@@ -60,6 +64,24 @@ func Nuke(config *models.Config) {
 			}
 			fmt.Println("Refreshed Brivo AUTH token")
 		}
+
+		// Get custom fields for user
+		if err := customFields.GetCustomFieldsForUser(user.ID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+			<-semaphore
+			wg.Done()
+			fmt.Printf("Error fetching custom fields for user %d: %s", user.ID, err)
+			continue
+		}
+
+		// Stash Barcode ID in a set so we can check it later against Credential.ReferenceID
+		barcodeID, err := models.GetFieldValue(config.BrivoBarcodeFieldID, customFields.Data)
+		if err != nil {
+			<-semaphore
+			wg.Done()
+			fmt.Printf("Skipping user %d with error: %s\n", user.ID, err)
+			continue
+		}
+		brivoIDSet[barcodeID] = true
 
 		go func(u models.BrivoUser) {
 			defer func() {
@@ -86,6 +108,13 @@ func Nuke(config *models.Config) {
 				log.Fatalln("Error refreshing Brivo AUTH token", err)
 			}
 			fmt.Println("Refreshed Brivo AUTH token")
+		}
+
+		// Make sure this credential belongs to a user we are deleteing (in the Member group only)
+		if brivoIDSet[cred.ReferenceID] != true {
+			<-semaphore
+			wg.Done()
+			continue
 		}
 
 		go func(c models.Credential) {

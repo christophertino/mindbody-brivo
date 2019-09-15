@@ -32,7 +32,7 @@ type CredentialList struct {
 type Credential struct {
 	ID                int              `json:"id,omitempty"`
 	CredentialFormat  CredentialFormat `json:"credentialFormat"`
-	ReferenceID       string           `json:"referenceId"`
+	ReferenceID       string           `json:"referenceId"` // Barcode ID (MindBodyUser.ID | BrivoUser.BarcodeID)
 	EncodedCredential string           `json:"encodedCredential"`
 }
 
@@ -78,15 +78,15 @@ func (cred *Credential) CreateCredential(brivoAPIKey string, brivoAccessToken st
 	}
 }
 
-// GenerateCredential will generate a credential that uses MINDBODY ExternalID
-// in an exceptable format for Brivo
-func GenerateCredential(externalID string) *Credential {
+// GenerateCredential will generate a credential that uses MINDBODY
+// barcode ID in an exceptable format for Brivo
+func GenerateCredential(barcodeID string) *Credential {
 	cred := Credential{
 		CredentialFormat: CredentialFormat{
 			ID: 110, // Unknown Format
 		},
-		ReferenceID:       externalID, // barcode ID
-		EncodedCredential: hex.EncodeToString([]byte(externalID)),
+		ReferenceID:       barcodeID, // barcode ID
+		EncodedCredential: hex.EncodeToString([]byte(barcodeID)),
 	}
 	return &cred
 }

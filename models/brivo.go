@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	utils "github.com/christophertino/mindbody-brivo"
 )
@@ -26,19 +27,14 @@ type Brivo struct {
 // BrivoUser stores Brivo user data
 type BrivoUser struct {
 	ID           int           `json:"id,omitempty"`
-	ExternalID   string        `json:"externalId"` // Barcode ID from MINDBODY to link accounts
+	ExternalID   string        `json:"externalId"` // MINDBODY's ClientUniqueID (will not change)
 	FirstName    string        `json:"firstName"`
 	MiddleName   string        `json:"middleName"`
 	LastName     string        `json:"lastName"`
 	Suspended    bool          `json:"suspended"`
-	CustomFields []customField `json:"customFields"`
+	CustomFields []CustomField `json:"customFields"`
 	Emails       []email       `json:"emails"`
 	PhoneNumbers []phoneNumber `json:"phoneNumbers"`
-}
-
-type customField struct {
-	FieldName string `json:"fieldName"`
-	FieldType string `json:"fieldType"`
 }
 
 type email struct {
@@ -137,37 +133,40 @@ func (brivo *Brivo) ListUsersWithinGroup(groupID int, brivoAPIKey string, brivoA
 }
 
 // BuildUser will build a Brivo user from MINDBODY user data
-func (user *BrivoUser) BuildUser(mbUser MindBodyUser) {
-	var (
-		userEmail email
-		userPhone phoneNumber
-	)
-	user.ExternalID = mbUser.ID // barcode ID
+func (user *BrivoUser) BuildUser(mbUser MindBodyUser, customFieldID int) {
+	user.ExternalID = strconv.Itoa(mbUser.UniqueID)
 	user.FirstName = mbUser.FirstName
 	user.MiddleName = mbUser.MiddleName
 	user.LastName = mbUser.LastName
 	user.Suspended = (mbUser.Active == false || mbUser.Status != "Active")
-	user.CustomFields = []customField{} // prevents nil comparator issues with cmp.Equal()
 	if mbUser.Email != "" {
-		userEmail.Address = mbUser.Email
-		userEmail.EmailType = "home"
-		user.Emails = append(user.Emails, userEmail)
+		user.Emails = append(user.Emails, email{
+			Address:   mbUser.Email,
+			EmailType: "home",
+		})
 	}
 	if mbUser.HomePhone != "" {
-		userPhone.Number = mbUser.HomePhone
-		userPhone.NumberType = "home"
-		user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
+		user.PhoneNumbers = append(user.PhoneNumbers, phoneNumber{
+			Number:     mbUser.HomePhone,
+			NumberType: "home",
+		})
 	}
 	if mbUser.MobilePhone != "" {
-		userPhone.Number = mbUser.MobilePhone
-		userPhone.NumberType = "mobile"
-		user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
+		user.PhoneNumbers = append(user.PhoneNumbers, phoneNumber{
+			Number:     mbUser.MobilePhone,
+			NumberType: "mobile",
+		})
 	}
 	if mbUser.WorkPhone != "" {
-		userPhone.Number = mbUser.WorkPhone
-		userPhone.NumberType = "work"
-		user.PhoneNumbers = append(user.PhoneNumbers, userPhone)
+		user.PhoneNumbers = append(user.PhoneNumbers, phoneNumber{
+			Number:     mbUser.WorkPhone,
+			NumberType: "work",
+		})
 	}
+
+	// Place MINDBODY barcode ID in a custom field
+	customField := GenerateCustomField(customFieldID, mbUser.ID)
+	user.CustomFields = append(user.CustomFields, *customField)
 }
 
 // CreateUser creates a new Brivo user
@@ -199,6 +198,31 @@ func (user *BrivoUser) CreateUser(brivoAPIKey string, brivoAccessToken string) e
 
 	// Add new user ID to BrivoUser
 	user.ID = int(r["id"].(float64))
+
+	return nil
+}
+
+// UpdateCustomField updates the fieldValue for a particular Custom Field by fieldID
+func (user *BrivoUser) UpdateCustomField(fieldID int, fieldValue string, brivoAPIKey string, brivoAccessToken string) error {
+	// Build request body JSON
+	bytesMessage, err := json.Marshal(CustomField{Value: fieldValue})
+	if err != nil {
+		return fmt.Errorf("Error building POST body json: %s", err)
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequest("PUT", fmt.Sprintf("https://api.brivo.com/v1/api/users/%d/custom-fields/%d", user.ID, fieldID), bytes.NewBuffer(bytesMessage))
+	if err != nil {
+		return fmt.Errorf("Error creating HTTP request: %s", err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
+	req.Header.Add("api-key", brivoAPIKey)
+
+	var r map[string]interface{}
+	if err = utils.DoRequest(req, &r); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -241,10 +265,10 @@ func (user *BrivoUser) AssignUserGroup(groupID int, brivoAPIKey string, brivoAcc
 	return nil
 }
 
-// Retrieves a Brivo user by their ExternalID value
-func (user *BrivoUser) getUserByID(externalID string, brivoAPIKey string, brivoAccessToken string) error {
+// Retrieves a Brivo user by their UniqueID value
+func (user *BrivoUser) getUserByID(uniqueID int, brivoAPIKey string, brivoAccessToken string) error {
 	// Create HTTP request
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/users/%s/external", externalID), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/users/%d/external", uniqueID), nil)
 	if err != nil {
 		return fmt.Errorf("Error creating HTTP request: %s", err)
 	}

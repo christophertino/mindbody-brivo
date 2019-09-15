@@ -27,7 +27,7 @@ type Event struct {
 // EventUserData stores MINDBODY user data sent by webhook events
 type EventUserData struct {
 	SiteID           int       `json:"siteId"`
-	ClientID         string    `json:"clientId"`       // The client’s public ID (MindBodyUser.ID)
+	ClientID         string    `json:"clientId"`       // The client’s public ID (MindBodyUser.ID) used for barcode credential
 	ClientUniqueID   int       `json:"clientUniqueId"` // The client’s guaranteed unique ID (MindBodyUser.UniqueID)
 	CreationDateTime time.Time `json:"creationDateTime"`
 	FirstName        string    `json:"firstName"`
@@ -43,20 +43,28 @@ type EventUserData struct {
 // CreateOrUpdateUser is a webhook event handler for client.updated and client.created
 func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 	var (
-		brivoUser BrivoUser
-		mbUser    MindBodyUser
+		brivoUser    BrivoUser
+		mbUser       MindBodyUser
+		customFields CustomFields
 	)
-	// Query the user on Brivo using the MINDBODY ExternalID
+	// Query the user on Brivo using the MINDBODY ClientUniqueID
 	var existingUser BrivoUser
-	err := existingUser.getUserByID(event.EventData.ClientID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+	err := existingUser.getUserByID(event.EventData.ClientUniqueID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	switch e := err.(type) {
 	// User already exists: Update user
 	case nil:
 		// Build event data into Brivo user
 		mbUser.buildUser(event.EventData)
-		brivoUser.BuildUser(mbUser)
+		brivoUser.BuildUser(mbUser, config.BrivoBarcodeFieldID)
+
 		// Update Brivo ID from existing user
 		brivoUser.ID = existingUser.ID
+
+		// Fetch custom fields for the existing user on Brivo as the barcodeID may have changed on MINDBODY
+		if err := customFields.GetCustomFieldsForUser(brivoUser.ID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+			return fmt.Errorf("Error fetching custom fields for user %s: %s", brivoUser.ExternalID, err)
+		}
+		existingUser.CustomFields = customFields.Data
 
 		// Check diff to see if update is needed
 		if !cmp.Equal(existingUser, brivoUser) {
@@ -70,6 +78,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 				}
 				fmt.Printf("Brivo user %s suspended status set to %t\n", brivoUser.ExternalID, brivoUser.Suspended)
 			}
+			// TODO:  Check if the barcode ID has changed
 			fmt.Printf("Brivo user %s updated successfully\n", brivoUser.ExternalID)
 		} else {
 			fmt.Printf("UserID %s does not have any properties to update\n", brivoUser.ExternalID)
@@ -85,15 +94,26 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 		if e.Code == 404 {
 			// Build event data into Brivo user
 			mbUser.buildUser(event.EventData)
-			brivoUser.BuildUser(mbUser)
+			brivoUser.BuildUser(mbUser, config.BrivoBarcodeFieldID)
 
 			// Create a new user
 			if err := brivoUser.CreateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				return fmt.Errorf("Error creating user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
+			// Fetch the barcode ID from CustomFields
+			customFieldValue, err := GetFieldValue(config.BrivoBarcodeFieldID, brivoUser.CustomFields)
+			if err != nil {
+				return fmt.Errorf("Error fetching barcode ID for user %s with error: %s", brivoUser.ExternalID, err)
+			}
+
+			// Add barcode ID to Brivo custom fields
+			if err := brivoUser.UpdateCustomField(config.BrivoBarcodeFieldID, customFieldValue, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				return fmt.Errorf("Error updating custom field for user %s with error: %s", brivoUser.ExternalID, err)
+			}
+
 			// Create new Brivo credential for this user
-			cred := GenerateCredential(brivoUser.ExternalID)
+			cred := GenerateCredential(customFieldValue)
 			credID, err := cred.CreateCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 			if err != nil {
 				return fmt.Errorf("Error creating credential for user %s with error: %s", brivoUser.ExternalID, err)
@@ -121,10 +141,10 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 
 // DeactivateUser is a webhook event handler for client.deactivated
 func (event *Event) DeactivateUser(config Config, auth Auth) error {
-	// Query the user data on Brivo using the MINDBODY ExternalID
+	// Query the user data on Brivo using the MINDBODY ClientUniqueID
 	var brivoUser BrivoUser
-	if err := brivoUser.getUserByID(event.EventData.ClientID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-		return fmt.Errorf("Brivo user %s does not exist. Error: %s", event.EventData.ClientID, err)
+	if err := brivoUser.getUserByID(event.EventData.ClientUniqueID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+		return fmt.Errorf("Brivo user %d does not exist. Error: %s", event.EventData.ClientUniqueID, err)
 	}
 	// Put Brivo user in suspended status
 	if err := brivoUser.toggleSuspendedStatus(true, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {

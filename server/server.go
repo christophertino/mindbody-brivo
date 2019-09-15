@@ -136,7 +136,7 @@ func processEvent(event *models.Event, config *models.Config) {
 				doRefresh(config)
 				break
 			}
-			fmt.Printf("Error creating/updating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
+			fmt.Printf("Error creating/updating Brivo client with MINDBODY ID %d\n%s", event.EventData.ClientUniqueID, err)
 		}
 	case "client.deactivated":
 		// Suspend an existing user
@@ -149,7 +149,7 @@ func processEvent(event *models.Event, config *models.Config) {
 				doRefresh(config)
 				break
 			}
-			fmt.Printf("Error deactivating Brivo client with MINDBODY ID %s\n%s", event.EventData.ClientID, err)
+			fmt.Printf("Error deactivating Brivo client with MINDBODY ID %d\n%s", event.EventData.ClientUniqueID, err)
 		}
 	default:
 		fmt.Printf("EventID %s not found\n", event.EventID)
@@ -167,6 +167,7 @@ func doRefresh(config *models.Config) {
 		return
 	}
 	utils.Logger("Refreshed Brivo AUTH token")
+	isRefreshing = false
 
 	// Listen for new events in the error channel
 loop:
@@ -178,8 +179,6 @@ loop:
 			break loop
 		}
 	}
-
-	isRefreshing = false
 }
 
 // Check for X-Mindbody-Signature header and validate against encoded request body

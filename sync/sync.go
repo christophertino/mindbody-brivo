@@ -97,7 +97,7 @@ func createUsers() {
 		}
 
 		// Convert MINDBODY user to Brivo user
-		user.BuildUser(mbUser)
+		user.BuildUser(mbUser, config.BrivoBarcodeFieldID)
 
 		// Check current refresh status
 		if !isRefreshing {
@@ -126,7 +126,13 @@ func processUser(user *models.BrivoUser) {
 			return
 		}
 
-		credID, err := createCredential(&u)
+		barcodeID, err := updateCustomField(&u)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		credID, err := createCredential(barcodeID, &u)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -172,14 +178,41 @@ func createUser(user *models.BrivoUser) error {
 	return fmt.Errorf("Error creating user %s with error: %s", user.ExternalID, err.Error())
 }
 
-// Create new Brivo credential for this user
-func createCredential(user *models.BrivoUser) (int, error) {
+// Add the users Barcode ID as a custom field value
+func updateCustomField(user *models.BrivoUser) (string, error) {
 	semaphore <- true
 	defer func() {
 		<-semaphore
 	}()
 
-	cred := models.GenerateCredential(user.ExternalID)
+	// Get the barcode ID for this user
+	customFieldValue, err := models.GetFieldValue(config.BrivoBarcodeFieldID, user.CustomFields)
+	if err == nil {
+		// PUT barcode ID to Brivo
+		err = user.UpdateCustomField(config.BrivoBarcodeFieldID, customFieldValue, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+		switch e := err.(type) {
+		case nil:
+			return customFieldValue, nil
+		case *utils.JSONError:
+			if e.Code == 401 {
+				errChan <- user
+				doRefresh()
+				return "", fmt.Errorf("Access token expired")
+			}
+		}
+	}
+	o.failure(user.ExternalID, fmt.Sprintf("Update Custom Field: %s", err.Error()))
+	return "", fmt.Errorf("Error updating custom field for user %s with error: %s", user.ExternalID, err.Error())
+}
+
+// Create new Brivo credential for this user
+func createCredential(barcodeID string, user *models.BrivoUser) (int, error) {
+	semaphore <- true
+	defer func() {
+		<-semaphore
+	}()
+
+	cred := models.GenerateCredential(barcodeID)
 	credID, err := cred.CreateCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	switch e := err.(type) {
 	case nil:
@@ -260,7 +293,7 @@ func doRefresh() {
 	isRefreshing = true
 	if err := refreshToken(); err != nil {
 		fmt.Println(err)
-		// TODO: potential unending loop scenario if Token API continuously fails
+		// @TODO: potential unending loop scenario if Token API continuously fails
 		return
 	}
 	fmt.Println("Refreshed Brivo AUTH token")

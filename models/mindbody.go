@@ -27,8 +27,8 @@ type MindBody struct {
 
 // MindBodyUser stores MINDBODY user data
 type MindBodyUser struct {
-	ID          string `json:"Id"`       // Client’s barcode ID used for client-related API calls
-	UniqueID    int    `json:"UniqueId"` // Client’s unique system-generated ID
+	ID          string `json:"Id"`       // Client’s public barcode ID used for client-related API calls (this is changeable)
+	UniqueID    int    `json:"UniqueId"` // Client’s unique system-generated ID (does not change)
 	FirstName   string `json:"FirstName"`
 	MiddleName  string `json:"MiddleName"`
 	LastName    string `json:"LastName"`
@@ -100,8 +100,8 @@ func (mbUser *MindBodyUser) buildUser(eventData EventUserData) {
 // IsValidID checks to make sure MindBodyUser.ID and EventUserData.ClientID
 // are valid 8 digit hex values. If the ID value does not match, that means the user has
 // not been assigned a MINDBODY security bracelet and should not be added to Brivo.
-func IsValidID(clientID string) bool {
-	match, err := regexp.MatchString("^[0-9a-fA-F]{8}$", clientID)
+func IsValidID(barcodeID string) bool {
+	match, err := regexp.MatchString("^[0-9a-fA-F]{8}$", barcodeID)
 	if err != nil {
 		return false
 	}

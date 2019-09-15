@@ -7,6 +7,11 @@ Sync membership data between MINDBODY and Brivo OnAir. This application makes th
     + Only users with a valid hex ID will be mirrored to Brivo
 + When a user is deactivated in MINDBODY, their account is put into suspended state in Brivo
 
+#### Setting up Brivo OnAir
+
++ Create a "Members" user group and add the GroupID to [.env](.env)
++ Create a Custom Field called "BarcodeID" of type "Text" and add the FieldID to [.env](.env)
+
 ## Generating API Keys
 
 + [Brivo OnAir API](https://developer.brivo.com/)
@@ -59,7 +64,7 @@ $ go run cmd/server/main.go
 ## Heroku Integration
 
 + Install the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli)
-+ Create config vars (from `.env`) on Heroku [link](https://devcenter.heroku.com/articles/config-vars#managing-config-vars)
++ Create config vars from [.env](.env) on Heroku [link](https://devcenter.heroku.com/articles/config-vars#managing-config-vars)
 
 #### Developing Locally
 
