@@ -21,10 +21,8 @@ type CustomFields struct {
 
 // CustomField stores data for a single custom field
 type CustomField struct {
-	ID        int    `json:"id,omitempty"`
-	FieldName string `json:"fieldName,omitempty"`
-	FieldType string `json:"fieldType,omitempty"`
-	Value     string `json:"value"`
+	ID    int    `json:"id,omitempty"`
+	Value string `json:"value"`
 }
 
 // GetCustomFieldsForUser retrieves any Brivo custom fields attached to userID

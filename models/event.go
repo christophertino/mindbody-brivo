@@ -60,14 +60,11 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 		// Update Brivo ID from existing user
 		brivoUser.ID = existingUser.ID
 
-		// Fetch custom fields for the existing user on Brivo as the barcodeID may have changed on MINDBODY
+		// Fetch custom fields for the existing user on Brivo as the barcode ID may have changed on MINDBODY
 		if err := customFields.GetCustomFieldsForUser(brivoUser.ID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 			return fmt.Errorf("Error fetching custom fields for user %s: %s", brivoUser.ExternalID, err)
 		}
 		existingUser.CustomFields = customFields.Data
-
-		// @TODO fix this check
-		fmt.Printf("%+v\n%+v\n", existingUser, brivoUser)
 
 		// Check diff to see if update is needed
 		if !cmp.Equal(existingUser, brivoUser) {
@@ -110,18 +107,23 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 			}
 
 			// Fetch the barcode ID from CustomFields
-			customFieldValue, err := GetFieldValue(config.BrivoBarcodeFieldID, brivoUser.CustomFields)
+			barcodeID, err := GetFieldValue(config.BrivoBarcodeFieldID, brivoUser.CustomFields)
 			if err != nil {
 				return fmt.Errorf("Error fetching barcode ID for user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
 			// Add barcode ID to Brivo custom fields
-			if err := brivoUser.UpdateCustomField(config.BrivoBarcodeFieldID, customFieldValue, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+			if err := brivoUser.UpdateCustomField(config.BrivoBarcodeFieldID, barcodeID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				return fmt.Errorf("Error updating custom field for user %s with error: %s", brivoUser.ExternalID, err)
+			}
+
+			// Add "Member" status to Brivo custom fields
+			if err := brivoUser.UpdateCustomField(config.BrivoStatusFieldID, "Member", config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				return fmt.Errorf("Error updating custom field for user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
 			// Create new Brivo credential for this user
-			cred := GenerateCredential(customFieldValue)
+			cred := GenerateCredential(barcodeID)
 			credID, err := cred.CreateCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 			if err != nil {
 				return fmt.Errorf("Error creating credential for user %s with error: %s", brivoUser.ExternalID, err)
