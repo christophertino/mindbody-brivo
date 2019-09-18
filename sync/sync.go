@@ -97,7 +97,7 @@ func createUsers() {
 		}
 
 		// Convert MINDBODY user to Brivo user
-		user.BuildUser(mbUser, config.BrivoBarcodeFieldID)
+		user.BuildUser(mbUser, *config)
 
 		// Check current refresh status
 		if !isRefreshing {
@@ -126,7 +126,15 @@ func processUser(user *models.BrivoUser) {
 			return
 		}
 
-		barcodeID, err := updateCustomField(&u)
+		// Set barcode ID
+		barcodeID, err := updateCustomField(&u, config.BrivoBarcodeFieldID)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		// Set status field
+		_, err = updateCustomField(&u, config.BrivoStatusFieldID)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -178,18 +186,16 @@ func createUser(user *models.BrivoUser) error {
 	return fmt.Errorf("Error creating user %s with error: %s", user.ExternalID, err.Error())
 }
 
-// Add the users Barcode ID as a custom field value
-func updateCustomField(user *models.BrivoUser) (string, error) {
+// Add custom fields for the user
+func updateCustomField(user *models.BrivoUser, customFieldID int) (string, error) {
 	semaphore <- true
 	defer func() {
 		<-semaphore
 	}()
 
-	// Get the barcode ID for this user
-	customFieldValue, err := models.GetFieldValue(config.BrivoBarcodeFieldID, user.CustomFields)
+	customFieldValue, err := models.GetFieldValue(customFieldID, user.CustomFields)
 	if err == nil {
-		// PUT barcode ID to Brivo
-		err = user.UpdateCustomField(config.BrivoBarcodeFieldID, customFieldValue, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+		err = user.UpdateCustomField(customFieldID, customFieldValue, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 		switch e := err.(type) {
 		case nil:
 			return customFieldValue, nil
@@ -201,8 +207,8 @@ func updateCustomField(user *models.BrivoUser) (string, error) {
 			}
 		}
 	}
-	o.failure(user.ExternalID, fmt.Sprintf("Update Custom Field: %s", err.Error()))
-	return "", fmt.Errorf("Error updating custom field for user %s with error: %s", user.ExternalID, err.Error())
+	o.failure(user.ExternalID, fmt.Sprintf("Update Custom Field ID %d: %s", customFieldID, err.Error()))
+	return "", fmt.Errorf("Error updating custom field ID %d for user %s with error: %s", customFieldID, user.ExternalID, err.Error())
 }
 
 // Create new Brivo credential for this user

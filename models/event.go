@@ -55,7 +55,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 	case nil:
 		// Build event data into Brivo user
 		mbUser.buildUser(event.EventData)
-		brivoUser.BuildUser(mbUser, config.BrivoBarcodeFieldID)
+		brivoUser.BuildUser(mbUser, config)
 
 		// Update Brivo ID from existing user
 		brivoUser.ID = existingUser.ID
@@ -65,6 +65,9 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 			return fmt.Errorf("Error fetching custom fields for user %s: %s", brivoUser.ExternalID, err)
 		}
 		existingUser.CustomFields = customFields.Data
+
+		// @TODO fix this check
+		fmt.Printf("%+v\n%+v\n", existingUser, brivoUser)
 
 		// Check diff to see if update is needed
 		if !cmp.Equal(existingUser, brivoUser) {
@@ -78,7 +81,12 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 				}
 				fmt.Printf("Brivo user %s suspended status set to %t\n", brivoUser.ExternalID, brivoUser.Suspended)
 			}
-			// TODO:  Check if the barcode ID has changed
+			// Check if the barcode ID has changed
+			existingBarcode, _ := GetFieldValue(config.BrivoBarcodeFieldID, existingUser.CustomFields)
+			newBarcode, _ := GetFieldValue(config.BrivoBarcodeFieldID, brivoUser.CustomFields)
+			if existingBarcode != newBarcode {
+				// @TODO Update the credential ID for this user
+			}
 			fmt.Printf("Brivo user %s updated successfully\n", brivoUser.ExternalID)
 		} else {
 			fmt.Printf("UserID %s does not have any properties to update\n", brivoUser.ExternalID)
@@ -94,7 +102,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 		if e.Code == 404 {
 			// Build event data into Brivo user
 			mbUser.buildUser(event.EventData)
-			brivoUser.BuildUser(mbUser, config.BrivoBarcodeFieldID)
+			brivoUser.BuildUser(mbUser, config)
 
 			// Create a new user
 			if err := brivoUser.CreateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {

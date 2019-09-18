@@ -133,7 +133,7 @@ func (brivo *Brivo) ListUsersWithinGroup(groupID int, brivoAPIKey string, brivoA
 }
 
 // BuildUser will build a Brivo user from MINDBODY user data
-func (user *BrivoUser) BuildUser(mbUser MindBodyUser, customFieldID int) {
+func (user *BrivoUser) BuildUser(mbUser MindBodyUser, config Config) {
 	user.ExternalID = strconv.Itoa(mbUser.UniqueID)
 	user.FirstName = mbUser.FirstName
 	user.MiddleName = mbUser.MiddleName
@@ -164,9 +164,10 @@ func (user *BrivoUser) BuildUser(mbUser MindBodyUser, customFieldID int) {
 		})
 	}
 
-	// Place MINDBODY barcode ID in a custom field
-	customField := GenerateCustomField(customFieldID, mbUser.ID)
-	user.CustomFields = append(user.CustomFields, *customField)
+	// Create custom fields for MINDBODY barcodeID and member status
+	barcodeID := GenerateCustomField(config.BrivoBarcodeFieldID, mbUser.ID)
+	status := GenerateCustomField(config.BrivoStatusFieldID, "Member")
+	user.CustomFields = append(user.CustomFields, *barcodeID, *status)
 }
 
 // CreateUser creates a new Brivo user
