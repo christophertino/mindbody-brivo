@@ -54,9 +54,6 @@ func Nuke(config *models.Config) {
 
 	// Loop over all users and delete
 	for _, user := range brivo.Data {
-		wg.Add(1)
-		semaphore <- true
-
 		// Check for valid Brivo AccessToken
 		if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
 			if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
@@ -65,13 +62,21 @@ func Nuke(config *models.Config) {
 			fmt.Println("Refreshed Brivo AUTH token")
 		}
 
+		wg.Add(1)
+		semaphore <- true
 		// Get custom fields for user
-		if err := customFields.GetCustomFieldsForUser(user.ID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-			<-semaphore
-			wg.Done()
-			fmt.Printf("Error fetching custom fields for user %d: %s", user.ID, err)
-			continue
-		}
+		go func(u models.BrivoUser) {
+			defer func() {
+				<-semaphore
+				wg.Done()
+			}()
+			if err := customFields.GetCustomFieldsForUser(u.ID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				fmt.Printf("Error fetching custom fields for user %d: %s\n", u.ID, err)
+				return
+			}
+		}(user)
+
+		wg.Wait()
 
 		// Stash Barcode ID in a set so we can check it later against Credential.ReferenceID
 		barcodeID, err := models.GetFieldValue(config.BrivoBarcodeFieldID, customFields.Data)
@@ -83,6 +88,8 @@ func Nuke(config *models.Config) {
 		}
 		brivoIDSet[barcodeID] = true
 
+		wg.Add(1)
+		semaphore <- true
 		go func(u models.BrivoUser) {
 			defer func() {
 				<-semaphore
