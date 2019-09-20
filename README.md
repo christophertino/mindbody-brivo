@@ -51,8 +51,8 @@ $ cp .env-example .env
 ### Provision Brivo OnAir 
 
 ```sh
-# On first run, copy all MINDBODY users to Brivo
-$ go run cmd/sync/main.go
+# On first run, migrate all MINDBODY users to Brivo
+$ go run cmd/migrate/main.go
 ```
 
 ### Start API Server

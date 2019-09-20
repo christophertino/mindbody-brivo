@@ -4,7 +4,7 @@
 
 // Migrate all MINDBODY clients to Brivo as new users
 
-package sync
+package migrate
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ import (
 	"github.com/christophertino/mindbody-brivo/models"
 )
 
-// Creates a log of users created/failed during sync
+// Creates a log of users created/failed during migration
 type outputLog struct {
 	access  sync.Mutex
 	success int
@@ -112,7 +112,7 @@ func createUsers() {
 	wg.Wait()
 
 	o.printLog()
-	fmt.Println("Sync completed. See sync_output.log")
+	fmt.Println("Migration completed. See migrate_output.log")
 }
 
 // Make Brivo API calls
@@ -158,10 +158,10 @@ func processUser(user *models.BrivoUser) {
 
 		o.success++
 		fmt.Printf("Successfully created Brivo user %s\n", u.ExternalID)
-	}(*user)
 
-	// Respect Brivo rate limit
-	time.Sleep(time.Second * 1)
+		// Respect Brivo rate limit
+		time.Sleep(time.Second * 1)
+	}(*user)
 }
 
 // Create a new Brivo user
@@ -324,7 +324,7 @@ func (o *outputLog) failure(userID string, reason string) {
 	o.access.Unlock()
 }
 
-// PrintLog generates an output log file for Sync app
+// PrintLog generates an output log file for Migration app
 func (o *outputLog) printLog() {
 	var b strings.Builder
 	b.WriteString("---------- OUTPUT LOG ----------\n")
@@ -334,7 +334,7 @@ func (o *outputLog) printLog() {
 		fmt.Fprintf(&b, "External ID: %s Reason: %s\n", index, value)
 	}
 	// Write to file
-	if err := ioutil.WriteFile("sync_output.log", []byte(b.String()), 0644); err != nil {
+	if err := ioutil.WriteFile("migrate_output.log", []byte(b.String()), 0644); err != nil {
 		log.Fatalln("Error writing output log", err)
 	}
 }
