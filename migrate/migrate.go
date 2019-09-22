@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/beefsack/go-rate"
 	utils "github.com/christophertino/mindbody-brivo"
 	"github.com/christophertino/mindbody-brivo/models"
 )
@@ -32,7 +33,7 @@ var (
 	mb           models.MindBody
 	wg           sync.WaitGroup
 	isRefreshing bool
-	semaphore    chan bool
+	rateLimit    *rate.RateLimiter
 	errChan      chan *models.BrivoUser
 	o            outputLog
 )
@@ -76,7 +77,7 @@ func GetAllUsers(c *models.Config) {
 // and POST to the Brivo API along with credential and group assignments
 func createUsers() {
 	// Handle rate limiting
-	semaphore = make(chan bool, config.BrivoRateLimit)
+	rateLimit = rate.New(config.BrivoRateLimit, time.Second)
 
 	// Create buffer channel to handle errors from processUser. Set buffer to Brivo rate limit
 	errChan = make(chan *models.BrivoUser, config.BrivoRateLimit)
@@ -121,36 +122,40 @@ func processUser(user *models.BrivoUser) {
 	go func(u models.BrivoUser) {
 		defer wg.Done()
 
+		// Create a new user
 		if err := createUser(&u); err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		// Set barcode ID
+		// Set the Barcode ID custom field
 		barcodeID, err := updateCustomField(&u, config.BrivoBarcodeFieldID)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		// Set status field
-		_, err = updateCustomField(&u, config.BrivoStatusFieldID)
+		// Set the User Type custom field
+		_, err = updateCustomField(&u, config.BrivoUserTypeFieldID)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
+		// Create a new credential
 		credID, err := createCredential(barcodeID, &u)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
+		// Assign the credential to the new user
 		if err := assignCredential(credID, &u); err != nil {
 			fmt.Println(err)
 			return
 		}
 
+		// Assign the user to the Member's group
 		if err := assignGroup(&u); err != nil {
 			fmt.Println(err)
 			return
@@ -158,19 +163,12 @@ func processUser(user *models.BrivoUser) {
 
 		o.success++
 		fmt.Printf("Successfully created Brivo user %s\n", u.ExternalID)
-
-		// Respect Brivo rate limit
-		time.Sleep(time.Second * 1)
 	}(*user)
 }
 
 // Create a new Brivo user
 func createUser(user *models.BrivoUser) error {
-	semaphore <- true
-	defer func() {
-		<-semaphore
-	}()
-
+	rateLimit.Wait()
 	err := user.CreateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	switch e := err.(type) {
 	case nil:
@@ -188,11 +186,7 @@ func createUser(user *models.BrivoUser) error {
 
 // Add custom fields for the user
 func updateCustomField(user *models.BrivoUser, customFieldID int) (string, error) {
-	semaphore <- true
-	defer func() {
-		<-semaphore
-	}()
-
+	rateLimit.Wait()
 	customFieldValue, err := models.GetFieldValue(customFieldID, user.CustomFields)
 	if err == nil {
 		err = user.UpdateCustomField(customFieldID, customFieldValue, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
@@ -213,11 +207,7 @@ func updateCustomField(user *models.BrivoUser, customFieldID int) (string, error
 
 // Create new Brivo credential for this user
 func createCredential(barcodeID string, user *models.BrivoUser) (int, error) {
-	semaphore <- true
-	defer func() {
-		<-semaphore
-	}()
-
+	rateLimit.Wait()
 	cred := models.GenerateCredential(barcodeID)
 	credID, err := cred.CreateCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	switch e := err.(type) {
@@ -236,11 +226,7 @@ func createCredential(barcodeID string, user *models.BrivoUser) (int, error) {
 
 // Assign credential to user
 func assignCredential(credID int, user *models.BrivoUser) error {
-	semaphore <- true
-	defer func() {
-		<-semaphore
-	}()
-
+	rateLimit.Wait()
 	err := user.AssignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	switch e := err.(type) {
 	case nil:
@@ -258,11 +244,7 @@ func assignCredential(credID int, user *models.BrivoUser) error {
 
 // Assign user to group
 func assignGroup(user *models.BrivoUser) error {
-	semaphore <- true
-	defer func() {
-		<-semaphore
-	}()
-
+	rateLimit.Wait()
 	err := user.AssignUserGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	switch e := err.(type) {
 	case nil:
@@ -280,10 +262,7 @@ func assignGroup(user *models.BrivoUser) error {
 
 // Call Brivo and fetch a refreshed token
 func refreshToken() error {
-	semaphore <- true
-	defer func() {
-		<-semaphore
-	}()
+	rateLimit.Wait()
 	if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
 		return fmt.Errorf("Error refreshing Brivo token: %s", err)
 	}

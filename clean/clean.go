@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/beefsack/go-rate"
 	"github.com/christophertino/mindbody-brivo/models"
 )
 
@@ -21,13 +22,14 @@ type brivoIDSet struct {
 }
 
 var (
-	auth      models.Auth
-	brivo     models.Brivo
-	creds     models.CredentialList
-	config    *models.Config
-	semaphore chan bool
-	wg        sync.WaitGroup
-	brivoIDs  brivoIDSet
+	auth         models.Auth
+	brivo        models.Brivo
+	creds        models.CredentialList
+	config       *models.Config
+	customFields models.CustomFields
+	rateLimit    *rate.RateLimiter
+	wg           sync.WaitGroup
+	brivoIDs     brivoIDSet
 )
 
 // Nuke is meant for cleaning up your Brivo developer environment. It will
@@ -54,7 +56,7 @@ func Nuke(cfg *models.Config) {
 	time.Sleep(time.Second * 1)
 
 	// Handle rate limiting
-	semaphore = make(chan bool, config.BrivoRateLimit)
+	rateLimit = rate.New(config.BrivoRateLimit, time.Second)
 
 	// Keep track of which users we deleted
 	brivoIDs.ids = make(map[string]bool)
@@ -63,21 +65,24 @@ func Nuke(cfg *models.Config) {
 
 	// Loop over all users and delete
 	for _, user := range brivo.Data {
-		// Check for valid Brivo AccessToken
-		if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
-			if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
-				log.Fatalln("Error refreshing Brivo AUTH token", err)
-			}
-			fmt.Println("Refreshed Brivo AUTH token")
-		}
-
 		wg.Add(1)
 		go func(u models.BrivoUser) {
 			defer wg.Done()
 
-			customFields, err := getCustomFields(u.ID)
-			if err != nil {
-				fmt.Println(err)
+			// Check for valid Brivo AccessToken
+			if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
+				rateLimit.Wait()
+				fmt.Println("Refresh required...")
+				if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
+					log.Fatalln("Error refreshing Brivo AUTH token", err)
+				}
+				fmt.Println("Refreshed Brivo AUTH token")
+			}
+
+			// Get custom fields for user
+			rateLimit.Wait()
+			if err := customFields.GetCustomFieldsForUser(u.ID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				fmt.Printf("Error fetching custom fields for user %d: %s\n", u.ID, err)
 				return
 			}
 
@@ -89,12 +94,11 @@ func Nuke(cfg *models.Config) {
 			}
 			brivoIDs.update(barcodeID)
 
-			if err := deleteUser(u); err != nil {
-				fmt.Println(err)
+			// Delete the user
+			rateLimit.Wait()
+			if err := u.DeleteUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+				fmt.Printf("Error deleting user %d: %s", u.ID, err)
 			}
-
-			// Reset rate limit
-			time.Sleep(time.Second * 1)
 		}(user)
 	}
 
@@ -103,28 +107,25 @@ func Nuke(cfg *models.Config) {
 	// Loop over all credentials and delete
 	for _, cred := range creds.Data {
 		wg.Add(1)
-		semaphore <- true
-
-		// Check for valid Brivo AccessToken
-		if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
-			if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
-				log.Fatalln("Error refreshing Brivo AUTH token", err)
-			}
-			fmt.Println("Refreshed Brivo AUTH token")
-		}
-
 		go func(c models.Credential) {
-			defer func() {
-				<-semaphore
-				wg.Done()
-			}()
+			defer wg.Done()
+
+			// Check for valid Brivo AccessToken
+			if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
+				rateLimit.Wait()
+				fmt.Println("Refresh required...")
+				if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
+					log.Fatalln("Error refreshing Brivo AUTH token", err)
+				}
+				fmt.Println("Refreshed Brivo AUTH token")
+			}
 
 			// Make sure this credential belongs to a user we are deleteing (in the Member group only)
 			if brivoIDs.ids[c.ReferenceID] == true {
+				rateLimit.Wait()
 				if err := c.DeleteCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 					fmt.Printf("Error deleting credential %d: %s\n", c.ID, err)
 				}
-				time.Sleep(time.Second * 1)
 			}
 		}(cred)
 	}
@@ -133,31 +134,6 @@ func Nuke(cfg *models.Config) {
 	wg.Wait()
 
 	fmt.Println("Nuke completed. Check error logs for output.")
-}
-
-// Get user's custom fields
-func getCustomFields(userID int) (models.CustomFields, error) {
-	semaphore <- true
-	defer func() {
-		<-semaphore
-	}()
-	var customFields models.CustomFields
-	if err := customFields.GetCustomFieldsForUser(userID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-		return customFields, fmt.Errorf("Error fetching custom fields for user %d: %s", userID, err)
-	}
-	return customFields, nil
-}
-
-// Delete a user from Brivo
-func deleteUser(user models.BrivoUser) error {
-	semaphore <- true
-	defer func() {
-		<-semaphore
-	}()
-	if err := user.DeleteUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-		return fmt.Errorf("Error deleting user %d: %s", user.ID, err)
-	}
-	return nil
 }
 
 // Uses mutual exclusion for thread-safe update to brivoIDSet map[]

@@ -83,6 +83,10 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 			newBarcode, _ := GetFieldValue(config.BrivoBarcodeFieldID, brivoUser.CustomFields)
 			if existingBarcode != newBarcode {
 				// @TODO Update the credential ID for this user
+				// Get old credential ID
+				// Delete the old credential ID
+				// Make a new credential
+				// Assign credential to user
 			}
 			fmt.Printf("Brivo user %s updated successfully\n", brivoUser.ExternalID)
 		} else {
@@ -117,8 +121,8 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 				return fmt.Errorf("Error updating custom field for user %s with error: %s", brivoUser.ExternalID, err)
 			}
 
-			// Add "Member" status to Brivo custom fields
-			if err := brivoUser.UpdateCustomField(config.BrivoStatusFieldID, "Member", config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+			// Add "Member" type to Brivo custom fields
+			if err := brivoUser.UpdateCustomField(config.BrivoUserTypeFieldID, "Member", config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				return fmt.Errorf("Error updating custom field for user %s with error: %s", brivoUser.ExternalID, err)
 			}
 

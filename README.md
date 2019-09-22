@@ -10,8 +10,8 @@ Sync membership data between MINDBODY and Brivo OnAir. This application makes th
 #### Setting up Brivo OnAir
 
 + Create a "Members" user group and add the GroupID to [.env](.env)
-+ Create a Custom Field called "BarcodeID" of type "Text" and add the FieldID to [.env](.env)
-+ Create a Custom Field called "Status" of type "Text" and add the FieldID to [.env](.env)
++ Create a Custom Field called `Barcode ID` of type `Text` and add the FieldID to [.env](.env)
++ Create a Custom Field called `User Type` of type `Text` and add the FieldID to [.env](.env)
 
 ## Generating API Keys
 

@@ -164,10 +164,10 @@ func (user *BrivoUser) BuildUser(mbUser MindBodyUser, config Config) {
 		})
 	}
 
-	// Create custom fields for MINDBODY barcodeID and member status
+	// Create custom fields for MINDBODY barcodeID and user type
 	barcodeID := GenerateCustomField(config.BrivoBarcodeFieldID, mbUser.ID)
-	status := GenerateCustomField(config.BrivoStatusFieldID, "Member")
-	user.CustomFields = append(user.CustomFields, *barcodeID, *status)
+	userType := GenerateCustomField(config.BrivoUserTypeFieldID, "Member")
+	user.CustomFields = append(user.CustomFields, *barcodeID, *userType)
 }
 
 // CreateUser creates a new Brivo user
