@@ -28,6 +28,7 @@ var (
 	creds        models.CredentialList
 	config       *models.Config
 	rateLimit    *rate.RateLimiter
+	mu           sync.Mutex
 	wg           sync.WaitGroup
 	brivoIDs     brivoIDSet
 	isRefreshing bool
@@ -100,9 +101,9 @@ func Nuke(cfg *models.Config) {
 // Fetch the user's Barcode ID and delete the user from Brivo
 func processUser(user models.BrivoUser) {
 	wg.Add(1)
+	rateLimit.Wait()
 	go func(u models.BrivoUser) {
 		defer wg.Done()
-
 		// Get custom fields for user
 		customFields, err := getCustomFields(&u)
 		if err != nil {
@@ -131,6 +132,7 @@ func processUser(user models.BrivoUser) {
 // Remove the credential from Brivo concurrently
 func processCredential(cred models.Credential) {
 	wg.Add(1)
+	rateLimit.Wait()
 	go func(c models.Credential) {
 		defer wg.Done()
 
@@ -213,13 +215,21 @@ func doRefresh() {
 		return
 	}
 
+	// Lock the refresh sequence as there may be multiple routines attempting to refresh at once
+	mu.Lock()
 	isRefreshing = true
-	if err := refreshToken(); err != nil {
-		fmt.Println(err)
-		return
+
+	// Check that token hasn't already been refreshed
+	if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
+		if err := refreshToken(); err != nil {
+			// Potential infinite loop if Token API continuously fails
+			log.Fatalf("Failed refreshing Brivo AUTH token with err %s\n", err)
+		}
+		fmt.Println("Refreshed Brivo AUTH token")
 	}
-	fmt.Println("Refreshed Brivo AUTH token")
+
 	isRefreshing = false
+	mu.Unlock()
 
 	// Listen for new events in the error channels
 loop:

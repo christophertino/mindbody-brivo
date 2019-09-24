@@ -16,6 +16,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	utils "github.com/christophertino/mindbody-brivo"
 	"github.com/christophertino/mindbody-brivo/models"
@@ -25,6 +27,7 @@ import (
 
 var (
 	auth         models.Auth
+	mu           sync.Mutex
 	isRefreshing bool
 	errChan      chan *models.Event
 )
@@ -161,13 +164,22 @@ func doRefresh(config *models.Config) {
 	if isRefreshing {
 		return
 	}
+
+	// Lock the refresh sequence as there may be multiple routines attempting to refresh at once
+	mu.Lock()
 	isRefreshing = true
-	if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
-		fmt.Println("Error refreshing Brivo AUTH token:\n", err)
-		return
+
+	// Check that token hasn't already been refreshed
+	if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
+		if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
+			fmt.Println("Error refreshing Brivo AUTH token:\n", err)
+			return
+		}
+		utils.Logger("Refreshed Brivo AUTH token")
 	}
-	utils.Logger("Refreshed Brivo AUTH token")
+
 	isRefreshing = false
+	mu.Unlock()
 
 	// Listen for new events in the error channel
 loop:
