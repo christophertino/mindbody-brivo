@@ -71,6 +71,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 			if err := brivoUser.updateUser(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 				return fmt.Errorf("Error updating user %s: %s", brivoUser.ExternalID, err)
 			}
+
 			// Handle account re-activation
 			if existingUser.Suspended != brivoUser.Suspended {
 				if err := brivoUser.toggleSuspendedStatus(brivoUser.Suspended, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
@@ -78,15 +79,38 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 				}
 				fmt.Printf("Brivo user %s suspended status set to %t\n", brivoUser.ExternalID, brivoUser.Suspended)
 			}
+
 			// Check if the barcode ID has changed
 			existingBarcode, _ := GetFieldValue(config.BrivoBarcodeFieldID, existingUser.CustomFields)
 			newBarcode, _ := GetFieldValue(config.BrivoBarcodeFieldID, brivoUser.CustomFields)
 			if existingBarcode != newBarcode {
-				// @TODO Update the credential ID for this user
-				// Get old credential ID
-				// Delete the old credential ID
-				// Make a new credential
-				// Assign credential to user
+				// Check to see if the credential exists for this user
+				oldCred, err := getCredentialByID(existingBarcode, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+				if err == nil {
+					// Delete the old credential
+					if err := oldCred.DeleteCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+						fmt.Printf("Error deleting Credential ID %s with message: %s\n", existingBarcode, err)
+					}
+				} else {
+					fmt.Printf("Credential ID %s not found: %s\n", existingBarcode, err)
+				}
+
+				// Update barcode ID in custom fields
+				if err := brivoUser.UpdateCustomField(config.BrivoBarcodeFieldID, newBarcode, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+					return fmt.Errorf("Error updating custom field for user %s with error: %s", brivoUser.ExternalID, err)
+				}
+
+				// Create new Brivo credential for this user based on new Barcode ID
+				cred := GenerateCredential(newBarcode)
+				credID, err := cred.CreateCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+				if err != nil {
+					return fmt.Errorf("Error creating credential for user %s with error: %s", brivoUser.ExternalID, err)
+				}
+
+				// Assign new credential to user
+				if err := brivoUser.AssignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+					return fmt.Errorf("Error assigning credential to user %s with error: %s", brivoUser.ExternalID, err)
+				}
 			}
 			fmt.Printf("Brivo user %s updated successfully\n", brivoUser.ExternalID)
 		} else {
