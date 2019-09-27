@@ -141,7 +141,6 @@ func processUser(user *models.BrivoUser) {
 		_, err = updateCustomField(&u, config.BrivoUserTypeFieldID)
 		if err != nil {
 			fmt.Println(err)
-			return
 		}
 
 		// Create a new credential
@@ -154,13 +153,11 @@ func processUser(user *models.BrivoUser) {
 		// Assign the credential to the new user
 		if err := assignCredential(credID, &u); err != nil {
 			fmt.Println(err)
-			return
 		}
 
 		// Assign the user to the Member's group
 		if err := assignGroup(&u); err != nil {
 			fmt.Println(err)
-			return
 		}
 
 		o.success++
