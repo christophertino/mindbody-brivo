@@ -107,10 +107,17 @@ func (token *mbToken) getMindBodyToken(config Config) error {
 // It accepts `config` as a reference for updating via BuildClientCredentials().
 func (token *BrivoToken) GetBrivoToken(config *Config) error {
 	// Create HTTP request
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://auth.brivo.com/oauth/token?grant_type=password&username=%s&password=%s", config.BrivoUsername, config.BrivoPassword), nil)
+	req, err := http.NewRequest("POST", "https://auth.brivo.com/oauth/token", nil)
 	if err != nil {
 		return fmt.Errorf("Error creating HTTP request: %s", err)
 	}
+	// Encode credentials
+	query := req.URL.Query()
+	query.Add("grant_type", "password")
+	query.Add("username", config.BrivoUsername)
+	query.Add("password", config.BrivoPassword)
+	req.URL.RawQuery = query.Encode()
+
 	config.buildClientCredentials()
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Basic "+config.BrivoClientCredentials)
