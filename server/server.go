@@ -104,7 +104,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 
 	// Validate that the ClientID is a valid hex ID
 	if !models.IsValidID(event.EventData.ClientID) {
-		fmt.Printf("User %s is not a valid hex ID\n", event.EventData.ClientID)
+		utils.Logger(fmt.Sprintf("User %s is not a valid hex ID\n", event.EventData.ClientID))
 		return
 	}
 
