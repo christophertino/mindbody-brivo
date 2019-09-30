@@ -22,7 +22,8 @@ func main() {
 	var config models.Config
 	config.GetConfig()
 
-	fmt.Println("This will delete all Brivo user data. Are you sure? (y/n)")
+	fmt.Println("WARNING: This will delete all Brivo user data.")
+	fmt.Println("Enter [1] to delete Members only. Enter [2] to delete all users.")
 	fmt.Print("-> ")
 
 	// Prompt user for confirmation
@@ -32,7 +33,9 @@ func main() {
 		log.Fatalln("Reader error:", err)
 	}
 
-	if char == 'y' || char == 'Y' {
-		clean.Nuke(&config)
+	if char == '1' || char == '2' {
+		clean.Nuke(&config, char)
+	} else {
+		fmt.Println("Input not recognized")
 	}
 }

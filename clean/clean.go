@@ -38,7 +38,7 @@ var (
 
 // Nuke is meant for cleaning up your Brivo developer environment. It will
 // remove all existing users and credentials so that you can start fresh.
-func Nuke(cfg *models.Config) {
+func Nuke(cfg *models.Config, scope rune) {
 	config = cfg
 	isRefreshing = false
 	errUser = make(chan *models.BrivoUser, config.BrivoRateLimit)
@@ -49,9 +49,19 @@ func Nuke(cfg *models.Config) {
 		log.Fatalf("Error generating Brivo access token: %s", err)
 	}
 
-	// Get all Brivo users from Member Group
-	if err := brivo.ListUsersWithinGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-		log.Fatalln("Error fetching Brivo users", err)
+	// Get Brivo users
+	if scope == '1' {
+		// Fetch from Member Group only
+		if err := brivo.ListUsersWithinGroup(config.BrivoMemberGroupID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+			log.Fatalln("Error fetching Brivo users", err)
+		}
+	} else if scope == '2' {
+		// Fetch all users
+		if err := brivo.ListUsers(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+			log.Fatalln("Error fetching Brivo users", err)
+		}
+	} else {
+		log.Fatalln("Error fetching Brivo users")
 	}
 
 	// Get all Brivo credentials
