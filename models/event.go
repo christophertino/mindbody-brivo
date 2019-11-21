@@ -99,7 +99,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 				}
 
 				// Create new Brivo credential for this user based on new Barcode ID
-				cred := GenerateCredential(newBarcode)
+				cred := GenerateStandardCredential(newBarcode, config.BrivoFacilityCode)
 				credID, err := cred.CreateCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 				if err != nil {
 					return fmt.Errorf("Error creating credential for user %s with error: %s", brivoUser.ExternalID, err)
@@ -149,7 +149,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 			}
 
 			// Create new Brivo credential for this user
-			cred := GenerateCredential(barcodeID)
+			cred := GenerateStandardCredential(barcodeID, config.BrivoFacilityCode)
 			credID, err := cred.CreateCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 			if err != nil {
 				return fmt.Errorf("Error creating credential for user %s with error: %s", brivoUser.ExternalID, err)

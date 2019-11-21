@@ -1,7 +1,6 @@
 // Brivo Credential Data Model
 //
-// Using CredentialFormat: 'Unknown Format'. Make a request to `v1/api/credentials/formats`
-// to list supported credential formats.
+// Make a request to `v1/api/credentials/formats` to list supported credential formats.
 // See https://apidocs.brivo.com/#api-Credential-ListCredentialFormats
 //
 // Copyright 2019 Christopher Tino. All rights reserved.
@@ -33,11 +32,18 @@ type Credential struct {
 	CredentialFormat  CredentialFormat `json:"credentialFormat"`
 	ReferenceID       string           `json:"referenceId"` // Barcode ID (MindBodyUser.ID | BrivoUser.CustomField BarcodeID)
 	EncodedCredential string           `json:"encodedCredential"`
+	FieldValues       []FieldValue     `json:"fieldValues"`
 }
 
 // CredentialFormat stores the Brivo credential format
 type CredentialFormat struct {
 	ID int `json:"id"`
+}
+
+// FieldValues stores relevant Credential fields for `card_number` and `facility_code`
+type FieldValue struct {
+	ID    int    `json:"id"`
+	Value string `json:"value"`
 }
 
 // CreateCredential will create new Brivo access credential. If the credential already exists, return the ID
@@ -81,9 +87,31 @@ func (cred *Credential) CreateCredential(brivoAPIKey string, brivoAccessToken st
 	}
 }
 
-// GenerateCredential will generate a credential that uses MINDBODY
-// barcode ID in an exceptable format for Brivo
-func GenerateCredential(barcodeID string) *Credential {
+// GenerateStandardCredential creates a Standard 26 Bit credential that uses the MINDBODY
+// barcode ID and Brivo facility code as Field Values
+func GenerateStandardCredential(barcodeID string, facilityCode int) *Credential {
+	cred := Credential{
+		CredentialFormat: CredentialFormat{
+			ID: 100, // Standard 26 Bit Format
+		},
+		ReferenceID: barcodeID,
+		FieldValues: []FieldValue{
+			FieldValue{
+				ID:    1, // card number
+				Value: barcodeID,
+			},
+			FieldValue{
+				ID:    2, // facility_code
+				Value: string(facilityCode),
+			},
+		},
+	}
+	return &cred
+}
+
+// GenerateUnknownCredential creates an encoded credential using format 110 Unknown
+// @deprecated
+func GenerateUnknownCredential(barcodeID string) *Credential {
 	cred := Credential{
 		CredentialFormat: CredentialFormat{
 			ID: 110, // Unknown Format

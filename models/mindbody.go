@@ -107,3 +107,13 @@ func IsValidID(facilityCode int, barcodeID string) bool {
 	}
 	return match
 }
+
+// IsValidHexID checks for a valid 8 digit hex value
+// @deprecated
+func IsValidHexID(barcodeID string) bool {
+	match, err := regexp.MatchString("^[0-9a-fA-F]{8}$", barcodeID)
+	if err != nil {
+		return false
+	}
+	return match
+}

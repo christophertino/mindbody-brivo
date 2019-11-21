@@ -142,14 +142,14 @@ func processUser(user *models.BrivoUser) {
 		}
 
 		// Create a new credential
-		credID, err := createCredential(barcodeID, &u)
+		credID, err := createCredential(&u, barcodeID, config.BrivoFacilityCode)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
 		// Assign the credential to the new user
-		if err := assignCredential(credID, &u); err != nil {
+		if err := assignCredential(&u, credID); err != nil {
 			fmt.Println(err)
 		}
 
@@ -203,9 +203,9 @@ func updateCustomField(user *models.BrivoUser, customFieldID int) (string, error
 }
 
 // Create new Brivo credential for this user
-func createCredential(barcodeID string, user *models.BrivoUser) (int, error) {
+func createCredential(user *models.BrivoUser, barcodeID string, facilityCode int) (int, error) {
 	rateLimit.Wait()
-	cred := models.GenerateCredential(barcodeID)
+	cred := models.GenerateStandardCredential(barcodeID, facilityCode)
 	rateLimit.Wait() // Add another count to the rate limit in case the credential exists and we need to make another call to fetch the ID
 	credID, err := cred.CreateCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	switch e := err.(type) {
@@ -223,7 +223,7 @@ func createCredential(barcodeID string, user *models.BrivoUser) (int, error) {
 }
 
 // Assign credential to user
-func assignCredential(credID int, user *models.BrivoUser) error {
+func assignCredential(user *models.BrivoUser, credID int) error {
 	rateLimit.Wait()
 	err := user.AssignUserCredential(credID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	switch e := err.(type) {
