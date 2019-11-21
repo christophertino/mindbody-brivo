@@ -1,11 +1,19 @@
-# MINDBODY / Brivo OnAir Membership Sync
+# MINDBODY / Brivo OnAir Membership Management
 
-Sync membership data between MINDBODY and Brivo OnAir. This application makes the following assumptions:
+Coordinate membership data and access control between MINDBODY and Brivo OnAir. This application makes the following assumptions:
 
 + The master client data is stored in MINDBODY and mirrored to Brivo
-+ MINDBODY users have been assigned a wristband with a generated hexadecimal ID
-    + Only users with a valid hex ID will be mirrored to Brivo
++ MINDBODY users have been assigned a wristband with an ID format of `FACILITY_CODE-MEMBER_ID`
+    + Brivo facility codes are used to group members into access groups
+    + Only users with a valid ID format will be mirrored to Brivo
 + When a user is deactivated in MINDBODY, their account is put into suspended state in Brivo
+
+#### Facility Access Control
+
+The application supports access control in two scenarios:
+
+1. On-Site Membership Check-in - A user scans his/her wristband at the facility counter. This triggers a MINDBODY Webhook to update Brivo with new membership data, if necessary.
+2. External Access Points - A user scans his/her wristband to enter the facility (locked door, parking garage, etc). This triggers a Brivo Event which updates MINDBODY of the user check-in
 
 #### Setting up Brivo OnAir
 
@@ -28,7 +36,30 @@ This app requires active webhook subscriptions for:
 
 See [Webhook Subscriptions](https://developers.mindbodyonline.com/WebhooksDocumentation#subscriptions) documentation.
 
-For validation, we use the `X-Mindbody-Signature` header and the `messageSignatureKey` returned from the `POST` Subscription webhook endpoint. [Read more](https://developers.mindbodyonline.com/WebhooksDocumentation?shell#x-mindbody-signature-header) 
+For validation, we use the `X-Mindbody-Signature` header and the `messageSignatureKey` returned from the `POST` Subscription webhook endpoint. [Read more](https://developers.mindbodyonline.com/WebhooksDocumentation?shell#x-mindbody-signature-header)
+
+### Create Brivo Event Subscriptions
+
+Create Event Subscriptions for each of the Brivo Access Points you want the application to monitor. 
+
+```json
+{
+  "name" : "Event Name",
+  "url" : "https://your-application-url",
+  "errorEmail": "you@error-email.com",
+  "criteria": [{
+            "criteriaType": "ACCESS-POINT",
+            "criteriaOperationType": "EQ",
+            "criteriaValue": 12345
+        }, {
+            "criteriaType": "ACCESS-POINT",
+            "criteriaOperationType": "EQ",
+            "criteriaValue": 67890
+        }
+    ]
+}
+```
+See [Event Subscription](https://apidocs.brivo.com/#api-Event_Subscription) documentation.
 
 ## Running the App
 

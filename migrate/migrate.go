@@ -92,7 +92,7 @@ func createUsers() {
 
 		// Validate that the ClientID has the correct facility access
 		if !models.IsValidID(config.BrivoFacilityCode, mbUser.ID) {
-			// o.failed[mbUser.ID] = "Invalid Hex ID"
+			// o.failed[mbUser.ID] = "Invalid ID format"
 			continue
 		}
 
