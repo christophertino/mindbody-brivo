@@ -40,7 +40,7 @@ For validation, we use the `X-Mindbody-Signature` header and the `messageSignatu
 
 ### Create Brivo Event Subscriptions
 
-Create Event Subscriptions for each of the Brivo Access Points you want the application to monitor. 
+Create Event Subscriptions for each of the Brivo sites you want the application to monitor. 
 
 ```json
 {
@@ -48,13 +48,9 @@ Create Event Subscriptions for each of the Brivo Access Points you want the appl
   "url" : "https://your-application-url",
   "errorEmail": "you@error-email.com",
   "criteria": [{
-            "criteriaType": "ACCESS-POINT",
+            "criteriaType": "SITE",
             "criteriaOperationType": "EQ",
             "criteriaValue": 12345
-        }, {
-            "criteriaType": "ACCESS-POINT",
-            "criteriaOperationType": "EQ",
-            "criteriaValue": 67890
         }
     ]
 }

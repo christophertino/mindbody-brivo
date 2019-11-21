@@ -40,7 +40,7 @@ type CredentialFormat struct {
 	ID int `json:"id"`
 }
 
-// FieldValues stores relevant Credential fields for `card_number` and `facility_code`
+// FieldValue contains relevant Credential fields for `card_number` and `facility_code`
 type FieldValue struct {
 	ID    int    `json:"id"`
 	Value string `json:"value"`
@@ -90,15 +90,16 @@ func (cred *Credential) CreateCredential(brivoAPIKey string, brivoAccessToken st
 // GenerateStandardCredential creates a Standard 26 Bit credential that uses the MINDBODY
 // barcode ID and Brivo facility code as Field Values
 func GenerateStandardCredential(barcodeID string, facilityCode int) *Credential {
+	cardNumber := strings.Replace(barcodeID, fmt.Sprintf("%d-", facilityCode), "", 1) // remove facilityCode from barcodeID
 	cred := Credential{
 		CredentialFormat: CredentialFormat{
 			ID: 100, // Standard 26 Bit Format
 		},
-		ReferenceID: barcodeID,
+		ReferenceID: cardNumber,
 		FieldValues: []FieldValue{
 			FieldValue{
 				ID:    1, // card number
-				Value: barcodeID,
+				Value: cardNumber,
 			},
 			FieldValue{
 				ID:    2, // facility_code
