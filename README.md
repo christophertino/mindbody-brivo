@@ -40,7 +40,6 @@ $ export GO111MODULE=on
 ```sh
 # Install dependencies with Go Modules
 $ go mod init
-$ go build cmd/mindbody-brivo/main.go
 ```
 
 ```sh
@@ -92,6 +91,5 @@ $ go run cmd/clean/main.go
 ```
 
 ## License
-[MPL-2.0](https://www.mozilla.org/en-US/MPL/2.0/)
 
 See [LICENSE](LICENSE)

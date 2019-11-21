@@ -1,11 +1,10 @@
-// Copyright 2019 Christopher Tino. All rights reserved.
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License v. 2.0, which can be found in the LICENSE file.
-
 // Brivo Credential Data Model
+//
 // Using CredentialFormat: 'Unknown Format'. Make a request to `v1/api/credentials/formats`
 // to list supported credential formats.
 // See https://apidocs.brivo.com/#api-Credential-ListCredentialFormats
+//
+// Copyright 2019 Christopher Tino. All rights reserved.
 
 package models
 

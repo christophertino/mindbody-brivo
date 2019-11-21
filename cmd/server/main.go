@@ -1,10 +1,9 @@
-// Copyright 2019 Christopher Tino. All rights reserved.
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License v. 2.0, which can be found in the LICENSE file.
-
 // MINDBODY Webhook Init
+//
 // This application listens for webhook events from MINDBODY
 // and makes corresponding changes in Brivo
+//
+// Copyright 2019 Christopher Tino. All rights reserved.
 
 package main
 
