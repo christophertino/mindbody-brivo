@@ -21,6 +21,7 @@ type Config struct {
 	BrivoClientSecret      string
 	BrivoAPIKey            string
 	BrivoFacilityCode      int
+	BrivoSiteID            int
 	BrivoMemberGroupID     int
 	BrivoBarcodeFieldID    int
 	BrivoUserTypeFieldID   int
@@ -56,6 +57,7 @@ func (config *Config) GetConfig() {
 	config.BrivoClientSecret = getEnvStrings("brivo_client_secret", "")
 	config.BrivoAPIKey = getEnvStrings("brivo_api_key", "")
 	config.BrivoFacilityCode, _ = strconv.Atoi(getEnvStrings("brivo_facility_code", "0"))
+	config.BrivoSiteID, _ = strconv.Atoi(getEnvStrings("brivo_site_id", "0"))
 	config.BrivoMemberGroupID, _ = strconv.Atoi(getEnvStrings("brivo_member_group_id", "0"))
 	config.BrivoBarcodeFieldID, _ = strconv.Atoi(getEnvStrings("brivo_barcode_field_id", "0"))
 	config.BrivoUserTypeFieldID, _ = strconv.Atoi(getEnvStrings("brivo_user_type_field_id", "0"))
