@@ -90,8 +90,8 @@ func createUsers() {
 		var user models.BrivoUser
 		mbUser := mb.Clients[i]
 
-		// Validate that the ClientID is a valid hex ID
-		if !models.IsValidID(mbUser.ID) {
+		// Validate that the ClientID has the correct facility access
+		if !models.IsValidID(config.BrivoFacilityCode, mbUser.ID) {
 			// o.failed[mbUser.ID] = "Invalid Hex ID"
 			continue
 		}

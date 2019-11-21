@@ -96,10 +96,12 @@ func (mbUser *MindBodyUser) buildUser(eventData EventUserData) {
 }
 
 // IsValidID checks to make sure MindBodyUser.ID and EventUserData.ClientID
-// are valid 8 digit hex values. If the ID value does not match, that means the user has
+// follow the correct ID format of XX-XXXXX, where the first two digits are the
+// Brivo facility code. If the ID value does not validate, that means the user has
 // not been assigned a MINDBODY security bracelet and should not be added to Brivo.
-func IsValidID(barcodeID string) bool {
-	match, err := regexp.MatchString("^[0-9a-fA-F]{8}$", barcodeID)
+func IsValidID(facilityCode int, barcodeID string) bool {
+	pattern := fmt.Sprintf("^%d-[0-9]{5}$", facilityCode)
+	match, err := regexp.MatchString(pattern, barcodeID)
 	if err != nil {
 		return false
 	}

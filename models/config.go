@@ -20,6 +20,7 @@ type Config struct {
 	BrivoClientID          string
 	BrivoClientSecret      string
 	BrivoAPIKey            string
+	BrivoFacilityCode      int
 	BrivoMemberGroupID     int
 	BrivoBarcodeFieldID    int
 	BrivoUserTypeFieldID   int
@@ -54,9 +55,10 @@ func (config *Config) GetConfig() {
 	config.BrivoClientID = getEnvStrings("brivo_client_id", "")
 	config.BrivoClientSecret = getEnvStrings("brivo_client_secret", "")
 	config.BrivoAPIKey = getEnvStrings("brivo_api_key", "")
-	config.BrivoMemberGroupID, _ = strconv.Atoi(getEnvStrings("brivo_member_group_id", "0"))      // parse to int
-	config.BrivoBarcodeFieldID, _ = strconv.Atoi(getEnvStrings("brivo_barcode_field_id", "0"))    // parse to int
-	config.BrivoUserTypeFieldID, _ = strconv.Atoi(getEnvStrings("brivo_user_type_field_id", "0")) // parse to int
+	config.BrivoFacilityCode, _ = strconv.Atoi(getEnvStrings("brivo_facility_code", "0"))
+	config.BrivoMemberGroupID, _ = strconv.Atoi(getEnvStrings("brivo_member_group_id", "0"))
+	config.BrivoBarcodeFieldID, _ = strconv.Atoi(getEnvStrings("brivo_barcode_field_id", "0"))
+	config.BrivoUserTypeFieldID, _ = strconv.Atoi(getEnvStrings("brivo_user_type_field_id", "0"))
 	config.BrivoRateLimit, _ = strconv.Atoi(getEnvStrings("brivo_rate_limit", "20"))
 
 	config.MindbodyAPIKey = getEnvStrings("mindbody_api_key", "")

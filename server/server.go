@@ -100,8 +100,8 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusAccepted)
 
-	// Validate that the ClientID is a valid hex ID
-	if !models.IsValidID(event.EventData.ClientID) {
+	// Validate that the ClientID has the correct facility access
+	if !models.IsValidID(config.BrivoFacilityCode, event.EventData.ClientID) {
 		utils.Logger(fmt.Sprintf("User %s is not a valid hex ID", event.EventData.ClientID))
 		return
 	}
