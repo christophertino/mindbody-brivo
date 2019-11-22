@@ -42,8 +42,7 @@ func Launch(config *models.Config) {
 
 	// Handle Brivo event subscriptions for site access
 	router.HandleFunc("/api/v1/access", func(rw http.ResponseWriter, req *http.Request) {
-		rw.Header().Set("Content-Type", "application/json")
-		rw.WriteHeader(http.StatusAccepted)
+		accessHandler(rw, req, config)
 	}).Methods(http.MethodPost)
 
 	// Used by MINDBODY to confirm webhook URL is valid
@@ -75,7 +74,7 @@ func Launch(config *models.Config) {
 	http.ListenAndServe(":"+config.Port, server)
 }
 
-// Handle request from webhook
+// Handle MINDBODY webhook requests
 func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Config) {
 	// Handle request
 	body, err := ioutil.ReadAll(req.Body)
@@ -123,6 +122,41 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 		// A refresh is currently taking place. Push the event into the error channel
 		errChan <- &event
 	}
+}
+
+// Handle Brivo access requests
+func accessHandler(rw http.ResponseWriter, req *http.Request, config *models.Config) {
+	// Handle request
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		fmt.Println("Error reading request", err)
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// Build request data into Access model
+	var access models.Access
+	if err = json.Unmarshal(body, &access); err != nil {
+		fmt.Println("Error unmarshalling json", err)
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// Respond with 202
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusAccepted)
+
+	// Validate that the ClientID has the correct facility access
+	// if !models.IsValidID(config.BrivoFacilityCode, strconv.Itoa(access.EventData.Credentials[0].ID)) {
+	// 	utils.Logger(fmt.Sprintf("User %d does not have a valid ID", access.EventData.Credentials[0].ID))
+	// 	return
+	// }
+
+	// Debug webhook payload
+	utils.Logger(fmt.Sprintf("EventData payload:\n%+v", access))
+
+	// Log the user visit in MB
+
 }
 
 // Handle cases for each webhook EventID
