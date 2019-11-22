@@ -34,10 +34,16 @@ var (
 func Launch(config *models.Config) {
 	router := mux.NewRouter()
 
-	// Handle webhook events related to MINDBODY clients
+	// Handle MINDBODY webhook events for client updates
 	router.HandleFunc("/api/v1/user", func(rw http.ResponseWriter, req *http.Request) {
 		// Use wrapper function here so that we can pass `config` to the handler
 		userHandler(rw, req, config)
+	}).Methods(http.MethodPost)
+
+	// Handle Brivo event subscriptions for site access
+	router.HandleFunc("/api/v1/access", func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(http.StatusAccepted)
 	}).Methods(http.MethodPost)
 
 	// Used by MINDBODY to confirm webhook URL is valid
