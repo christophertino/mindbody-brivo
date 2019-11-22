@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	utils "github.com/christophertino/mindbody-brivo"
@@ -31,8 +32,8 @@ type Credential struct {
 	ID                int              `json:"id,omitempty"`
 	CredentialFormat  CredentialFormat `json:"credentialFormat"`
 	ReferenceID       string           `json:"referenceId"` // Barcode ID (MindBodyUser.ID | BrivoUser.CustomField BarcodeID)
-	EncodedCredential string           `json:"encodedCredential"`
-	FieldValues       []FieldValue     `json:"fieldValues"`
+	EncodedCredential string           `json:"encodedCredential,omitempty"`
+	FieldValues       []FieldValue     `json:"fieldValues,omitempty"`
 }
 
 // CredentialFormat stores the Brivo credential format
@@ -90,20 +91,19 @@ func (cred *Credential) CreateCredential(brivoAPIKey string, brivoAccessToken st
 // GenerateStandardCredential creates a Standard 26 Bit credential that uses the MINDBODY
 // barcode ID and Brivo facility code as Field Values
 func GenerateStandardCredential(barcodeID string, facilityCode int) *Credential {
-	cardNumber := strings.Replace(barcodeID, fmt.Sprintf("%d-", facilityCode), "", 1) // remove facilityCode from barcodeID
 	cred := Credential{
 		CredentialFormat: CredentialFormat{
 			ID: 100, // Standard 26 Bit Format
 		},
-		ReferenceID: cardNumber,
+		ReferenceID: barcodeID,
 		FieldValues: []FieldValue{
 			FieldValue{
-				ID:    1, // card number
-				Value: cardNumber,
+				ID:    1,                                                                   // card number
+				Value: strings.Replace(barcodeID, fmt.Sprintf("%d-", facilityCode), "", 1), // remove facilityCode from barcodeID
 			},
 			FieldValue{
 				ID:    2, // facility_code
-				Value: string(facilityCode),
+				Value: strconv.Itoa(facilityCode),
 			},
 		},
 	}
