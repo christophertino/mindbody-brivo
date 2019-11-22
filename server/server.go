@@ -142,9 +142,9 @@ func accessHandler(rw http.ResponseWriter, req *http.Request, config *models.Con
 		return
 	}
 
-	// Respond with 202
+	// Respond with 200 (Brivo doesn't like 202)
 	rw.Header().Set("Content-Type", "application/json")
-	rw.WriteHeader(http.StatusAccepted)
+	rw.WriteHeader(http.StatusOK)
 
 	// Validate that the ClientID has the correct facility access
 	// if !models.IsValidID(config.BrivoFacilityCode, strconv.Itoa(access.EventData.Credentials[0].ID)) {
@@ -153,7 +153,7 @@ func accessHandler(rw http.ResponseWriter, req *http.Request, config *models.Con
 	// }
 
 	// Debug webhook payload
-	utils.Logger(fmt.Sprintf("EventData payload:\n%+v", access))
+	utils.Logger(fmt.Sprintf("Access data payload:\n%+v", access))
 
 	// Log the user visit in MB
 
