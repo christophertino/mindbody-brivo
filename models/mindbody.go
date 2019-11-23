@@ -5,6 +5,8 @@
 package models
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -36,6 +38,12 @@ type MindBodyUser struct {
 	WorkPhone   string `json:"WorkPhone"`
 	Active      bool   `json:"Active"`
 	Status      string `json:"Status"` // Declined,Non-Member,Active,Expired,Suspended,Terminated
+}
+
+// Client arrival information
+type clientArrival struct {
+	ClientID   int `json:"ClientId"`
+	LocationID int `json:"LocationId"`
 }
 
 // GetClients builds the MINDBODY data model with client data
@@ -76,6 +84,36 @@ func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 	mb.Clients = results
 
 	utils.Logger(fmt.Sprintf("Completed fetching %d MINDBODY clients.", mb.PaginationResponse.TotalResults))
+
+	return nil
+}
+
+// AddArrival logs a client arrival to a location in MINDBODY. This is used
+// by Brivo event subscriptions when a user enters the facility through an access point
+func AddArrival(userID int, config *Config, mbAccessToken string) error {
+	// Build request body JSON
+	bytesMessage, err := json.Marshal(clientArrival{
+		ClientID:   userID,
+		LocationID: config.MindbodyLocationID,
+	})
+	if err != nil {
+		return fmt.Errorf("Error building request body json: %s", err)
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequest("POST", "https://api.mindbodyonline.com/public/v6/client/addarrival", bytes.NewBuffer(bytesMessage))
+	if err != nil {
+		return fmt.Errorf("Error creating HTTP request: %s", err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("SiteId", config.MindbodySite)
+	req.Header.Add("Api-Key", config.MindbodyAPIKey)
+	req.Header.Add("Authorization", mbAccessToken)
+
+	var r map[string]interface{}
+	if err = utils.DoRequest(req, &r); err != nil {
+		return err
+	}
 
 	return nil
 }

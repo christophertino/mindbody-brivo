@@ -71,7 +71,7 @@ func (brivo *Brivo) ListUsers(brivoAPIKey string, brivoAccessToken string) error
 			return err
 		}
 
-		// Stash external IDs in a set so we can check them later against MB users
+		// Stash external IDs in a set so we can check them later against MINDBODY users
 		for _, element := range brivo.Data {
 			brivoIDSet[element.ExternalID] = true
 		}
@@ -178,7 +178,7 @@ func (user *BrivoUser) CreateUser(brivoAPIKey string, brivoAccessToken string) e
 	// Build request body JSON
 	bytesMessage, err := json.Marshal(user)
 	if err != nil {
-		return fmt.Errorf("Error building POST body json: %s", err)
+		return fmt.Errorf("Error building request body json: %s", err)
 	}
 
 	// Create HTTP request
@@ -206,7 +206,7 @@ func (user *BrivoUser) UpdateCustomField(fieldID int, fieldValue string, brivoAP
 	// Build request body JSON
 	bytesMessage, err := json.Marshal(CustomField{Value: fieldValue})
 	if err != nil {
-		return fmt.Errorf("Error building POST body json: %s", err)
+		return fmt.Errorf("Error building request body json: %s", err)
 	}
 
 	// Create HTTP request
@@ -287,7 +287,7 @@ func (user *BrivoUser) updateUser(brivoAPIKey string, brivoAccessToken string) e
 	// Build request body JSON
 	bytesMessage, err := json.Marshal(user)
 	if err != nil {
-		return fmt.Errorf("Error building POST body json: %s", err)
+		return fmt.Errorf("Error building request body json: %s", err)
 	}
 
 	// Create HTTP request
@@ -312,7 +312,7 @@ func (user *BrivoUser) toggleSuspendedStatus(suspended bool, brivoAPIKey string,
 	// Build request body JSON
 	bytesMessage, err := json.Marshal(map[string]bool{"suspended": suspended})
 	if err != nil {
-		return fmt.Errorf("Error building POST body json: %s", err)
+		return fmt.Errorf("Error building request body json: %s", err)
 	}
 
 	// Create HTTP request

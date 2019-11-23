@@ -33,6 +33,7 @@ type Config struct {
 	MindbodyUsername            string
 	MindbodyPassword            string
 	MindbodySite                string
+	MindbodyLocationID          int
 
 	Debug bool
 	Proxy bool
@@ -68,6 +69,7 @@ func (config *Config) GetConfig() {
 	config.MindbodyUsername = getEnvStrings("mindbody_username", "")
 	config.MindbodyPassword = getEnvStrings("mindbody_password", "")
 	config.MindbodySite = getEnvStrings("mindbody_site", "-99")
+	config.MindbodyLocationID, _ = strconv.Atoi(getEnvStrings("mindbody_location_id", "1"))
 
 	config.Debug, _ = strconv.ParseBool(getEnvStrings("DEBUG", "true"))
 	config.Proxy, _ = strconv.ParseBool(getEnvStrings("PROXY", "false"))

@@ -52,7 +52,7 @@ func (cred *Credential) CreateCredential(brivoAPIKey string, brivoAccessToken st
 	// Build request body JSON
 	bytesMessage, err := json.Marshal(cred)
 	if err != nil {
-		return 0, fmt.Errorf("Error building POST body json: %s", err)
+		return 0, fmt.Errorf("Error building request body json: %s", err)
 	}
 
 	// Create HTTP request

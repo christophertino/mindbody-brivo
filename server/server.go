@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -169,8 +170,15 @@ func accessHandler(rw http.ResponseWriter, req *http.Request, config *models.Con
 		return
 	}
 
-	// Log the user visit in MB
-	// https://developers.mindbodyonline.com/PublicDocumentation/V6?shell#add-arrival
+	// Log the user arrival in MINDBODY
+	// TODO: This will continually log arrivals at each access point. May need to limit
+	// to once per day
+	userID, _ := strconv.Atoi(cred.ReferenceID)
+	err = models.AddArrival(userID, config, auth.MindBodyToken.AccessToken)
+	if err != nil {
+		utils.Logger(fmt.Sprintf("Error logging arrival to MINDBODY\n%s", err))
+		return
+	}
 }
 
 // Handle cases for each webhook EventID
@@ -255,7 +263,7 @@ func validateHeader(body []byte, config models.Config, req *http.Request) bool {
 		mac.Write(body)
 		hash := mac.Sum(nil) // hexadecimal hash
 
-		// Decode the MB header
+		// Decode the MINDBODY header
 		decodedHeader, _ := base64.StdEncoding.DecodeString(mbSignature)
 		return hmac.Equal(hash, decodedHeader)
 	}

@@ -82,7 +82,7 @@ func (token *mbToken) getMindBodyToken(config Config) error {
 	}
 	bytesMessage, err := json.Marshal(body)
 	if err != nil {
-		return fmt.Errorf("Error building POST body json: %s", err)
+		return fmt.Errorf("Error building request body json: %s", err)
 	}
 
 	// Create HTTP request
