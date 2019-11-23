@@ -4,7 +4,10 @@
 
 package models
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // Access stores Brivo user data when a site access event happens
 type Access struct {
@@ -34,16 +37,27 @@ type Access struct {
 	} `json:"site"`
 	Occurred  time.Time `json:"occurred"`
 	EventData struct {
-		ActorName       string `json:"actorName"`
-		ObjectName      string `json:"objectName"`
-		ObjectGroupName string `json:"objectGroupName"`
-		ActionAllowed   bool   `json:"actionAllowed"`
-		ObjectTypeID    int    `json:"objectTypeId"`
-		Credentials     []struct {
-			ID       int  `json:"id"`
-			Disabled bool `json:"disabled"`
-		} `json:"credentials"`
-		CredentialObjectID int `json:"credentialObjectId"`
-		DeviceTypeID       int `json:"deviceTypeId"`
+		ActorName          string             `json:"actorName"`
+		ObjectName         string             `json:"objectName"`
+		ObjectGroupName    string             `json:"objectGroupName"`
+		ActionAllowed      bool               `json:"actionAllowed"`
+		ObjectTypeID       int                `json:"objectTypeId"`
+		Credentials        []AccessCredential `json:"credentials"`
+		CredentialObjectID int                `json:"credentialObjectId"`
+		DeviceTypeID       int                `json:"deviceTypeId"`
 	} `json:"eventData"`
+}
+
+// AccessCredential holds the user credential associate with the access event
+type AccessCredential struct {
+	ID       int  `json:"id"`
+	Disabled bool `json:"disabled"`
+}
+
+// GetAccessCredential unwraps the AccessCredential from the Access event
+func GetAccessCredential(creds []AccessCredential) (*AccessCredential, error) {
+	if len(creds) > 0 {
+		return &creds[0], nil
+	}
+	return &AccessCredential{}, fmt.Errorf("Access credential not found")
 }

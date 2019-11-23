@@ -146,17 +146,31 @@ func accessHandler(rw http.ResponseWriter, req *http.Request, config *models.Con
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 
-	// Validate that the ClientID has the correct facility access
-	// if !models.IsValidID(config.BrivoFacilityCode, strconv.Itoa(access.EventData.Credentials[0].ID)) {
-	// 	utils.Logger(fmt.Sprintf("User %d does not have a valid ID", access.EventData.Credentials[0].ID))
-	// 	return
-	// }
-
 	// Debug webhook payload
 	utils.Logger(fmt.Sprintf("Access data payload:\n%+v", access))
 
-	// Log the user visit in MB
+	// Unwrap the AccessCredential from the event data
+	accessCredential, err := models.GetAccessCredential(access.EventData.Credentials)
+	if err != nil {
+		utils.Logger(fmt.Sprintf("Error unwrapping AccessCredential\n%s", err))
+		return
+	}
 
+	// Fetch the user Credential by Brivo ID
+	cred, err := models.GetCredentialByID(accessCredential.ID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+	if err != nil {
+		utils.Logger(fmt.Sprintf("Error fetching user credential\n%s", err))
+		return
+	}
+
+	// Validate that the credential has the correct facility access
+	if !models.IsValidID(config.BrivoFacilityCode, cred.ReferenceID) {
+		utils.Logger(fmt.Sprintf("Credential %s is not have a valid ID", cred.ReferenceID))
+		return
+	}
+
+	// Log the user visit in MB
+	// https://developers.mindbodyonline.com/PublicDocumentation/V6?shell#add-arrival
 }
 
 // Handle cases for each webhook EventID

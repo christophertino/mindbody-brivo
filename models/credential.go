@@ -74,7 +74,7 @@ func (cred *Credential) CreateCredential(brivoAPIKey string, brivoAccessToken st
 		// If the credential already exists we need to fetch it's ID from Brivo
 		if e.Code == 400 && strings.Contains(e.Body["message"].(string), "Duplicate Credential Found") {
 			fmt.Printf("Credential ID %s already exists.\n", cred.ReferenceID)
-			cred, err := getCredentialByID(cred.ReferenceID, brivoAPIKey, brivoAccessToken)
+			cred, err := getCredentialByRefID(cred.ReferenceID, brivoAPIKey, brivoAccessToken)
 			if err != nil {
 				return 0, err
 			}
@@ -98,7 +98,7 @@ func GenerateStandardCredential(barcodeID string, facilityCode int) *Credential 
 		ReferenceID: barcodeID,
 		FieldValues: []FieldValue{
 			FieldValue{
-				ID:    1,                                                                   // card number
+				ID:    1,                                                                   // card_number
 				Value: strings.Replace(barcodeID, fmt.Sprintf("%d-", facilityCode), "", 1), // remove facilityCode from barcodeID
 			},
 			FieldValue{
@@ -123,8 +123,9 @@ func GenerateUnknownCredential(barcodeID string) *Credential {
 	return &cred
 }
 
-// Get a Brivo credential by reference_id (Credential.ReferenceID) and return the Credential
-func getCredentialByID(barcodeID string, brivoAPIKey string, brivoAccessToken string) (Credential, error) {
+// Get a Brivo credential by reference_id (Credential.ReferenceID) and return the
+// Credential. The ReferenceID should contain the MINDBODY barcodeID
+func getCredentialByRefID(barcodeID string, brivoAPIKey string, brivoAccessToken string) (Credential, error) {
 	// Create HTTP request
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/credentials?filter=reference_id__eq:%s", barcodeID), nil)
 	if err != nil {
@@ -146,6 +147,26 @@ func getCredentialByID(barcodeID string, brivoAPIKey string, brivoAccessToken st
 	}
 
 	return Credential{}, fmt.Errorf("Credential with ReferenceID %s not found", barcodeID)
+}
+
+// GetCredentialByID returns a user credential based on the Brivo credential ID
+func GetCredentialByID(credentialID int, brivoAPIKey string, brivoAccessToken string) (Credential, error) {
+	// Create HTTP request
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/credentials/%d", credentialID), nil)
+	if err != nil {
+		return Credential{}, fmt.Errorf("Error creating HTTP request: %s", err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
+	req.Header.Add("api-key", brivoAPIKey)
+
+	var cred Credential
+	if err = utils.DoRequest(req, &cred); err != nil {
+		return Credential{}, err
+	}
+
+	fmt.Printf("Successfully fetched Credential ID %d\n", credentialID)
+	return cred, nil
 }
 
 // GetCredentials fetches all existing credentials from Brivo

@@ -83,7 +83,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 			newBarcode, _ := GetFieldValue(config.BrivoBarcodeFieldID, brivoUser.CustomFields)
 			if existingBarcode != newBarcode {
 				// Check to see if the credential exists for this user
-				oldCred, err := getCredentialByID(existingBarcode, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+				oldCred, err := getCredentialByRefID(existingBarcode, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 				if err == nil {
 					// Delete the old credential
 					if err := oldCred.DeleteCredential(config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
