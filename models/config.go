@@ -35,6 +35,8 @@ type Config struct {
 	MindbodySite                string
 	MindbodyLocationID          int
 
+	RedisURL string
+
 	Debug bool
 	Proxy bool
 	Port  string
@@ -70,6 +72,8 @@ func (config *Config) GetConfig() {
 	config.MindbodyPassword = getEnvStrings("mindbody_password", "")
 	config.MindbodySite = getEnvStrings("mindbody_site", "-99")
 	config.MindbodyLocationID, _ = strconv.Atoi(getEnvStrings("mindbody_location_id", "1"))
+
+	config.RedisURL = getEnvStrings("REDIS_URL", "")
 
 	config.Debug, _ = strconv.ParseBool(getEnvStrings("DEBUG", "true"))
 	config.Proxy, _ = strconv.ParseBool(getEnvStrings("PROXY", "false"))

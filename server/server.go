@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -33,6 +34,11 @@ var (
 // Launch will start the web server and initialize API routes
 func Launch(config *models.Config) {
 	router := mux.NewRouter()
+
+	// Establish Redis connection
+	pool := models.NewPool(config.RedisURL)
+	conn := pool.Get()
+	defer conn.Close()
 
 	// Handle MINDBODY webhook events for client updates
 	router.HandleFunc("/api/v1/user", func(rw http.ResponseWriter, req *http.Request) {
@@ -172,12 +178,12 @@ func accessHandler(rw http.ResponseWriter, req *http.Request, config *models.Con
 	// Log the user arrival in MINDBODY
 	// TODO: This will continually log arrivals at each access point. May need to limit
 	// to once per day
-	// userID, _ := strconv.Atoi(cred.ReferenceID)
-	// err = models.AddArrival(userID, config, auth.MindBodyToken.AccessToken)
-	// if err != nil {
-	// 	utils.Logger(fmt.Sprintf("Error logging arrival to MINDBODY\n%s", err))
-	// 	return
-	// }
+	userID, _ := strconv.Atoi(cred.ReferenceID)
+	err = models.AddArrival(userID, config, auth.MindBodyToken.AccessToken)
+	if err != nil {
+		utils.Logger(fmt.Sprintf("Error logging arrival to MINDBODY\n%s", err))
+		return
+	}
 }
 
 // Handle cases for each webhook EventID

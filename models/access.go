@@ -11,40 +11,12 @@ import (
 
 // Access stores Brivo user data when a site access event happens
 type Access struct {
-	ObjectType     string `json:"objectType"`
-	UUID           string `json:"uuid"`
-	AccountID      int    `json:"accountId"`
-	SecurityAction struct {
-		SecurityActionID int    `json:"securityActionId"`
-		Action           string `json:"action"`
-		Exception        bool   `json:"exception"`
-	} `json:"securityAction"`
-	Actor struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
-	} `json:"actor"`
-	EventObject struct {
-		ID         int    `json:"id"`
-		Name       string `json:"name"`
-		DeviceType struct {
-			ID   int    `json:"id"`
-			Name string `json:"name"`
-		} `json:"deviceType"`
-	} `json:"eventObject"`
-	Site struct {
-		ID       int    `json:"id"`
-		SiteName string `json:"siteName"`
-	} `json:"site"`
 	Occurred  time.Time `json:"occurred"`
 	EventData struct {
-		ActorName          string             `json:"actorName"`
-		ObjectName         string             `json:"objectName"`
-		ObjectGroupName    string             `json:"objectGroupName"`
-		ActionAllowed      bool               `json:"actionAllowed"`
-		ObjectTypeID       int                `json:"objectTypeId"`
-		Credentials        []AccessCredential `json:"credentials"`
-		CredentialObjectID int                `json:"credentialObjectId"`
-		DeviceTypeID       int                `json:"deviceTypeId"`
+		ActionAllowed bool               `json:"actionAllowed"` // Was the action allowed? (May not be used)
+		ActorName     string             `json:"actorName"`     // The user's name (for debugging)
+		ObjectName    string             `json:"objectName"`    // Access point name
+		Credentials   []AccessCredential `json:"credentials"`
 	} `json:"eventData"`
 }
 
