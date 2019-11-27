@@ -29,11 +29,11 @@ type Config struct {
 	BrivoClientCredentials string
 
 	MindbodyAPIKey              string
-	MindbodyMessageSignatureKey string
 	MindbodyUsername            string
 	MindbodyPassword            string
 	MindbodySite                string
 	MindbodyLocationID          int
+	MindbodyMessageSignatureKey string
 
 	RedisURL string
 
@@ -67,11 +67,11 @@ func (config *Config) GetConfig() {
 	config.BrivoRateLimit, _ = strconv.Atoi(getEnvStrings("brivo_rate_limit", "20"))
 
 	config.MindbodyAPIKey = getEnvStrings("mindbody_api_key", "")
-	config.MindbodyMessageSignatureKey = getEnvStrings("mindbody_message_signature_key", "")
 	config.MindbodyUsername = getEnvStrings("mindbody_username", "")
 	config.MindbodyPassword = getEnvStrings("mindbody_password", "")
 	config.MindbodySite = getEnvStrings("mindbody_site", "-99")
 	config.MindbodyLocationID, _ = strconv.Atoi(getEnvStrings("mindbody_location_id", "1"))
+	config.MindbodyMessageSignatureKey = getEnvStrings("mindbody_message_signature_key", "")
 
 	config.RedisURL = getEnvStrings("REDIS_URL", "")
 
