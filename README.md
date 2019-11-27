@@ -63,13 +63,13 @@ Redis is required to cache client arrivals when the user scans into a Brivo acce
 + Install the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli)
 + Create config vars from [.env](.env) on Heroku [link](https://devcenter.heroku.com/articles/config-vars#managing-config-vars)
 + Add Heroku Redis to the application
-    `heroku addons:create heroku-redis:hobby-dev -app your_app_name`
+    + `heroku addons:create heroku-redis:hobby-dev -app your_app_name`
 + Share Redis instance with staging dyno
-    `heroku addons:attach my-originating-app::REDIS --app your_staging_app_name`
+    + `heroku addons:attach my-originating-app::REDIS --app your_staging_app_name`
 + Get the Heroku Redis URL
-    `heroku config -a your_app_name | grep REDIS`
+    + `heroku config -a your_app_name | grep REDIS`
 + Connect to the Redis instance
-    `heroku redis:cli -a your_app_name -c your_app_name`
+    + `heroku redis:cli -a your_app_name -c your_app_name`
 
 ### Environment Variables
 
@@ -77,26 +77,26 @@ Redis is required to cache client arrivals when the user scans into a Brivo acce
 # Brivo
 brivo_username              [string]    Brivo OnAir username
 brivo_password              [string]    Brivo OnAir password
-brivo_client_id             [string]    Create Brivo application with password authentication type [link](https://apidocs.brivo.com/#autheation)
+brivo_client_id             [string]    Brivo OnAir application with password authentication type
 brivo_client_secret         [string]    Same as `brivo_client_id`
-brivo_api_key               [string]    Brivo developer account [link](https://developer.brivo.com/apps/mya
+brivo_api_key               [string]    Brivo developer account
 brivo_facility_code         [int]       Credential facility code for member site access
-brivo_site_id               [int]       Site listing [link](https://apidocs.brivo.com/#api-Site-ListSi
-brivo_member_group_id       [int]       Group listing [link](https://apidocs.brivo.com/#api-Group-ListGro
-brivo_barcode_field_id      [int]       Custom field listing [link](https://apidocs.brivo.com/#api-Custom_Field-ListCustomFie
-brivo_user_type_field_id    [int]       Custom field listing [link](https://apidocs.brivo.com/#api-Custom_Field-ListCustomFie
+brivo_site_id               [int]       GET site listing API
+brivo_member_group_id       [int]       GET group listing API
+brivo_barcode_field_id      [int]       GET custom field listing API
+brivo_user_type_field_id    [int]       GET Custom field listing API
 brivo_rate_limit            [int]       Development:20, Production:50
 
 # Mindbody
-mindbody_api_key                [string]    Mindbody developer account [link](https://developers.mindbodyonline.com/PublicDocumentation/V6#api-keys)
+mindbody_api_key                [string]    Mindbody developer account
 mindbody_username               [string]    Mindbody username
 mindbody_password               [string]    Mindbody password
 mindbody_site                   [int]       Mindbody site ID (-99 for sandbox)
-mindbody_location_id            [int]       Site location ID [link](https://developers.mindbodyonline.com/PublicDocumentation/V6#get-locations)
-mindbody_message_signature_key  [string]    Webhook signature header [link](https://developers.mindbodyonline.com/WebhooksDocumentation#x-mindbody-signature-header)
+mindbody_location_id            [int]       GET site locations API
+mindbody_message_signature_key  [string]    X-MINDBODY Signature Header
 
 # Redis
-REDIS_URL       [string]        URL of Redis server instance (see Heroku Integration above)
+REDIS_URL       [string]        URL of Redis server instance
 
 # Environment
 DEBUG           [bool]          Enable debug logs
