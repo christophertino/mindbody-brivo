@@ -16,10 +16,13 @@ import (
 
 // Access stores Brivo user data when a site access event happens
 type Access struct {
-	Occurred  time.Time `json:"occurred"`
+	Occurred time.Time `json:"occurred"`
+	Actor    struct {
+		ID   int    `json:"id"`   // The user's Brivo ID
+		Name string `json:"name"` // The user's name (for debugging)
+	} `json:"actor"`
 	EventData struct {
 		ActionAllowed bool               `json:"actionAllowed"` // Was the action allowed? (May not be used)
-		ActorName     string             `json:"actorName"`     // The user's name (for debugging)
 		ObjectName    string             `json:"objectName"`    // Access point name
 		Credentials   []AccessCredential `json:"credentials"`
 	} `json:"eventData"`
@@ -36,7 +39,7 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, conn redis.Conn
 	// Unwrap the AccessCredential from the event data
 	accessCredential, err := access.getAccessCredential()
 	if err != nil {
-		utils.Logger(fmt.Sprintf("Error unwrapping AccessCredential\n%s", err))
+		fmt.Printf("Error unwrapping AccessCredential\n%s", err)
 		return
 	}
 
@@ -52,7 +55,7 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, conn redis.Conn
 	// Fetch the user Credential by Brivo ID
 	cred, err := GetCredentialByID(accessCredential.ID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	if err != nil {
-		utils.Logger(fmt.Sprintf("Error fetching user credential\n%s", err))
+		fmt.Printf("Error fetching user credential\n%s", err)
 		return
 	}
 
@@ -87,11 +90,18 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, conn redis.Conn
 		utils.Logger("Refreshed Mindbody AUTH token")
 	}
 
+	// Fetch Mindbody client UniqueID from Brivo.ExternalID
+	var brivo *BrivoUser
+	if err = brivo.getUserByID(access.Actor.ID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+		fmt.Printf("Error fetching Brivo user %d\n%s", access.Actor.ID, err)
+		return
+	}
+	externalID, _ := strconv.Atoi(brivo.ExternalID)
+
 	// Log the user arrival in MINDBODY
-	userID, _ := strconv.Atoi(cred.ReferenceID)
-	err = AddArrival(userID, config, auth.MindBodyToken.AccessToken)
+	err = AddArrival(externalID, config, auth.MindBodyToken.AccessToken)
 	if err != nil {
-		utils.Logger(fmt.Sprintf("Error logging arrival to MINDBODY\n%s", err))
+		fmt.Printf("Error logging arrival to MINDBODY\n%s", err)
 		return
 	}
 }
@@ -110,7 +120,7 @@ func isToday(timestamp string) bool {
 	today := time.Now().UTC()
 	date, err := time.Parse("2006-01-02 15:04:05", timestamp)
 	if err != nil {
-		utils.Logger(fmt.Sprintf("Error parsing timestamp \n%s", err))
+		fmt.Printf("Error parsing timestamp \n%s", err)
 		return false
 	}
 	return date.Day() == today.Day() && date.Month() == today.Month() && date.Year() == today.Year()
