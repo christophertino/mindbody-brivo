@@ -18,12 +18,14 @@ import (
 	db "github.com/christophertino/mindbody-brivo"
 	utils "github.com/christophertino/mindbody-brivo"
 	"github.com/christophertino/mindbody-brivo/models"
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
 )
 
 var (
 	auth         models.Auth
+	conn         redis.Conn
 	isRefreshing bool
 	errChan      chan *models.Event
 )
@@ -34,7 +36,7 @@ func Launch(config *models.Config) {
 
 	// Establish Redis connection
 	pool := db.NewPool(config.RedisURL)
-	conn := pool.Get()
+	conn = pool.Get()
 	defer conn.Close()
 
 	// Handle MINDBODY webhook events for client updates
@@ -153,7 +155,7 @@ func accessHandler(rw http.ResponseWriter, req *http.Request, config *models.Con
 	utils.Logger(fmt.Sprintf("Access data payload:\n%+v", access))
 
 	// Process the access request
-	access.ProcessRequest(config, &auth)
+	access.ProcessRequest(config, &auth, conn)
 }
 
 // Check for X-Mindbody-Signature header and validate against encoded request body

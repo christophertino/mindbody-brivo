@@ -4,7 +4,9 @@
 
 package mindbodybrivo
 
-import "github.com/gomodule/redigo/redis"
+import (
+	"github.com/gomodule/redigo/redis"
+)
 
 // NewPool creates a new Redis connection Pool
 func NewPool(redisURL string) *redis.Pool {
@@ -19,4 +21,22 @@ func NewPool(redisURL string) *redis.Pool {
 			return c, err
 		},
 	}
+}
+
+// Get executes the Redis GET command
+func Get(key string, c redis.Conn) (string, error) {
+	value, err := redis.String(c.Do("GET", key))
+	if err != nil {
+		return "", err
+	}
+	return value, nil
+}
+
+// Set executes the Redis SET command
+func Set(key string, value string, c redis.Conn) error {
+	_, err := c.Do("SET", key, value)
+	if err != nil {
+		return err
+	}
+	return nil
 }

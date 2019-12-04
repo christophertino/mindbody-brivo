@@ -9,7 +9,9 @@ import (
 	"strconv"
 	"time"
 
+	db "github.com/christophertino/mindbody-brivo"
 	utils "github.com/christophertino/mindbody-brivo"
+	"github.com/gomodule/redigo/redis"
 )
 
 // Access stores Brivo user data when a site access event happens
@@ -30,7 +32,7 @@ type AccessCredential struct {
 }
 
 // ProcessRequest takes a Brivo access requests and logs a client arrival in Mindbody
-func (access *Access) ProcessRequest(config *Config, auth *Auth) {
+func (access *Access) ProcessRequest(config *Config, auth *Auth, conn redis.Conn) {
 	// Unwrap the AccessCredential from the event data
 	accessCredential, err := access.getAccessCredential()
 	if err != nil {
@@ -60,7 +62,22 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth) {
 		return
 	}
 
-	// TODO: Add the request timestamp to Redis
+	// Add the request timestamp to Redis
+	today := time.Now().UTC().Format("2006-01-02 15:04:05")
+	timestamp, err := db.Get(cred.ReferenceID, conn)
+	if err != nil && err == redis.ErrNil {
+		// Timestamp not found in Redis. Add today's timestamp for the user
+		db.Set(cred.ReferenceID, today, conn)
+	}
+
+	// Don't log a Mindbody arrival for the user if we have already seen them today
+	if isToday(timestamp) {
+		utils.Logger("User already has an active Mindbody arrival for today")
+		return
+	} else {
+		// The user has an older arrival timestamp from a previous day. Update to today's date
+		db.Set(cred.ReferenceID, today, conn)
+	}
 
 	// Check if the Mindbody token needs to be refreshed
 	if time.Now().UTC().After(auth.MindBodyToken.ExpireTime) {
@@ -87,4 +104,15 @@ func (access *Access) getAccessCredential() (*AccessCredential, error) {
 		return &creds[0], nil
 	}
 	return &AccessCredential{}, fmt.Errorf("Access credential not found")
+}
+
+// Checks to see if the timestamp matches the day, month and year of the current date
+func isToday(timestamp string) bool {
+	today := time.Now().UTC()
+	date, err := time.Parse("2006-01-02 15:04:05", timestamp)
+	if err != nil {
+		utils.Logger(fmt.Sprintf("Error parsing timestamp \n%s", err))
+		return false
+	}
+	return date.Day() == today.Day() && date.Month() == today.Month() && date.Year() == today.Year()
 }
