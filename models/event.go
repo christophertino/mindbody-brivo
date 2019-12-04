@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	utils "github.com/christophertino/mindbody-brivo"
@@ -36,6 +37,46 @@ type EventUserData struct {
 	HomePhone        string    `json:"homePhone"`
 	WorkPhone        string    `json:"workPhone"`
 	Status           string    `json:"status"` // Declined,Non-Member,Active,Expired,Suspended,Terminated
+}
+
+var mu sync.Mutex
+
+// ProcessEvent handles cases for each webhook EventID
+func (event *Event) ProcessEvent(errChan chan *Event, isRefreshing bool, config *Config, auth *Auth) {
+	// Route event to correct action
+	switch event.EventID {
+	case "client.created":
+		// Create a new user
+		fallthrough
+	case "client.updated":
+		// Update an existing user
+		if err := event.CreateOrUpdateUser(*config, *auth); err != nil {
+			// If we get a 401:Unauthorized, the token is expired
+			if err.Error() == "401" {
+				// Stash the current event in the error channel
+				errChan <- event
+				// Handle token refresh
+				doRefresh(errChan, isRefreshing, config, auth)
+				break
+			}
+			fmt.Printf("Error creating/updating Brivo client with MINDBODY ID %d\n%s", event.EventData.ClientUniqueID, err)
+		}
+	case "client.deactivated":
+		// Suspend an existing user
+		if err := event.DeactivateUser(*config, *auth); err != nil {
+			// If we get a 401:Unauthorized, the token is expired
+			if err.Error() == "401" {
+				// Stash the current event in the error channel
+				errChan <- event
+				// Handle token refresh
+				doRefresh(errChan, isRefreshing, config, auth)
+				break
+			}
+			fmt.Printf("Error deactivating Brivo client with MINDBODY ID %d\n%s", event.EventData.ClientUniqueID, err)
+		}
+	default:
+		fmt.Printf("EventID %s not found\n", event.EventID)
+	}
 }
 
 // CreateOrUpdateUser is a webhook event handler for client.updated and client.created
@@ -190,4 +231,38 @@ func (event *Event) DeactivateUser(config Config, auth Auth) error {
 	fmt.Printf("Brivo user %s suspended status set to true\n", brivoUser.ExternalID)
 
 	return nil
+}
+
+// Check current refreshing status and process new refresh token
+func doRefresh(errChan chan *Event, isRefreshing bool, config *Config, auth *Auth) {
+	if isRefreshing {
+		return
+	}
+
+	// Lock the refresh sequence as there may be multiple routines attempting to refresh at once
+	mu.Lock()
+	isRefreshing = true
+
+	// Check that token hasn't already been refreshed
+	if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
+		if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
+			fmt.Println("Error refreshing Brivo AUTH token:\n", err)
+			return
+		}
+		utils.Logger("Refreshed Brivo AUTH token")
+	}
+
+	isRefreshing = false
+	mu.Unlock()
+
+	// Listen for new events in the error channel
+loop:
+	for {
+		select {
+		case event := <-errChan:
+			go event.ProcessEvent(errChan, isRefreshing, config, auth)
+		default:
+			break loop
+		}
+	}
 }

@@ -36,6 +36,7 @@ type BrivoToken struct {
 type mbToken struct {
 	TokenType   string `json:"TokenType"`
 	AccessToken string `json:"AccessToken"`
+	ExpireTime  time.Time
 }
 
 // Authenticate fetches access tokens for MINDBODY and Brivo
@@ -97,6 +98,9 @@ func (token *mbToken) getMindBodyToken(config Config) error {
 	if err = utils.DoRequest(req, token); err != nil {
 		return err
 	}
+
+	// Set AccessToken expiration time for 7 days
+	token.ExpireTime = time.Now().UTC().AddDate(0, 0, 7)
 
 	return nil
 }

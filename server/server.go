@@ -13,11 +13,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
-	"sync"
-	"time"
 
+	db "github.com/christophertino/mindbody-brivo"
 	utils "github.com/christophertino/mindbody-brivo"
 	"github.com/christophertino/mindbody-brivo/models"
 	"github.com/gorilla/mux"
@@ -26,7 +24,6 @@ import (
 
 var (
 	auth         models.Auth
-	mu           sync.Mutex
 	isRefreshing bool
 	errChan      chan *models.Event
 )
@@ -36,7 +33,7 @@ func Launch(config *models.Config) {
 	router := mux.NewRouter()
 
 	// Establish Redis connection
-	pool := models.NewPool(config.RedisURL)
+	pool := db.NewPool(config.RedisURL)
 	conn := pool.Get()
 	defer conn.Close()
 
@@ -66,16 +63,16 @@ func Launch(config *models.Config) {
 	server := negroni.New()
 	server.UseHandler(router)
 
-	// Generate Brivo access token. MINDBODY token not needed
-	if err := auth.BrivoToken.GetBrivoToken(config); err != nil {
-		log.Fatalf("Error generating Brivo access token: %s", err)
+	// Generate access tokens for Brivo and Mindbody
+	if err := auth.Authenticate(config); err != nil {
+		log.Fatalf("Error generating access tokens: %s", err)
 	}
 
 	// Create buffer channel to handle errors from the userHandler
 	errChan = make(chan *models.Event, config.BrivoRateLimit)
 	isRefreshing = false
 
-	fmt.Printf("Listening for webhook events at PORT %s\n", config.Port)
+	fmt.Printf("Listening for events at PORT %s\n", config.Port)
 
 	http.ListenAndServe(":"+config.Port, server)
 }
@@ -123,7 +120,7 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	// Check current refresh status
 	if !isRefreshing {
 		// Process the event normally
-		go processEvent(&event, config)
+		go event.ProcessEvent(errChan, isRefreshing, config, &auth)
 	} else {
 		// A refresh is currently taking place. Push the event into the error channel
 		errChan <- &event
@@ -155,107 +152,8 @@ func accessHandler(rw http.ResponseWriter, req *http.Request, config *models.Con
 	// Debug webhook payload
 	utils.Logger(fmt.Sprintf("Access data payload:\n%+v", access))
 
-	// Unwrap the AccessCredential from the event data
-	accessCredential, err := models.GetAccessCredential(access.EventData.Credentials)
-	if err != nil {
-		utils.Logger(fmt.Sprintf("Error unwrapping AccessCredential\n%s", err))
-		return
-	}
-
-	// Fetch the user Credential by Brivo ID
-	cred, err := models.GetCredentialByID(accessCredential.ID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
-	if err != nil {
-		utils.Logger(fmt.Sprintf("Error fetching user credential\n%s", err))
-		return
-	}
-
-	// Validate that the credential has the correct facility access
-	if !models.IsValidID(config.BrivoFacilityCode, cred.ReferenceID) {
-		utils.Logger(fmt.Sprintf("Credential %s is not have a valid ID", cred.ReferenceID))
-		return
-	}
-
-	// Log the user arrival in MINDBODY
-	// TODO: This will continually log arrivals at each access point. May need to limit
-	// to once per day
-	userID, _ := strconv.Atoi(cred.ReferenceID)
-	err = models.AddArrival(userID, config, auth.MindBodyToken.AccessToken)
-	if err != nil {
-		utils.Logger(fmt.Sprintf("Error logging arrival to MINDBODY\n%s", err))
-		return
-	}
-}
-
-// Handle cases for each webhook EventID
-func processEvent(event *models.Event, config *models.Config) {
-	// Route event to correct action
-	switch event.EventID {
-	case "client.created":
-		// Create a new user
-		fallthrough
-	case "client.updated":
-		// Update an existing user
-		if err := event.CreateOrUpdateUser(*config, auth); err != nil {
-			// If we get a 401:Unauthorized, the token is expired
-			if err.Error() == "401" {
-				// Stash the current event in the error channel
-				errChan <- event
-				// Handle token refresh
-				doRefresh(config)
-				break
-			}
-			fmt.Printf("Error creating/updating Brivo client with MINDBODY ID %d\n%s", event.EventData.ClientUniqueID, err)
-		}
-	case "client.deactivated":
-		// Suspend an existing user
-		if err := event.DeactivateUser(*config, auth); err != nil {
-			// If we get a 401:Unauthorized, the token is expired
-			if err.Error() == "401" {
-				// Stash the current event in the error channel
-				errChan <- event
-				// Handle token refresh
-				doRefresh(config)
-				break
-			}
-			fmt.Printf("Error deactivating Brivo client with MINDBODY ID %d\n%s", event.EventData.ClientUniqueID, err)
-		}
-	default:
-		fmt.Printf("EventID %s not found\n", event.EventID)
-	}
-}
-
-// Check current refreshing status and process new refresh token
-func doRefresh(config *models.Config) {
-	if isRefreshing {
-		return
-	}
-
-	// Lock the refresh sequence as there may be multiple routines attempting to refresh at once
-	mu.Lock()
-	isRefreshing = true
-
-	// Check that token hasn't already been refreshed
-	if time.Now().UTC().After(auth.BrivoToken.ExpireTime) {
-		if err := auth.BrivoToken.RefreshBrivoToken(*config); err != nil {
-			fmt.Println("Error refreshing Brivo AUTH token:\n", err)
-			return
-		}
-		utils.Logger("Refreshed Brivo AUTH token")
-	}
-
-	isRefreshing = false
-	mu.Unlock()
-
-	// Listen for new events in the error channel
-loop:
-	for {
-		select {
-		case event := <-errChan:
-			go processEvent(event, config)
-		default:
-			break loop
-		}
-	}
+	// Process the access request
+	access.ProcessRequest(config, &auth)
 }
 
 // Check for X-Mindbody-Signature header and validate against encoded request body
