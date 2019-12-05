@@ -59,7 +59,7 @@ func (event *Event) ProcessEvent(errChan chan *Event, isRefreshing bool, config 
 				doRefresh(errChan, isRefreshing, config, auth)
 				break
 			}
-			fmt.Printf("Error creating/updating Brivo client with MINDBODY ID %d\n%s", event.EventData.ClientUniqueID, err)
+			fmt.Printf("Error creating/updating Brivo client with MINDBODY ID %d\n%s\n", event.EventData.ClientUniqueID, err)
 		}
 	case "client.deactivated":
 		// Suspend an existing user
@@ -72,7 +72,7 @@ func (event *Event) ProcessEvent(errChan chan *Event, isRefreshing bool, config 
 				doRefresh(errChan, isRefreshing, config, auth)
 				break
 			}
-			fmt.Printf("Error deactivating Brivo client with MINDBODY ID %d\n%s", event.EventData.ClientUniqueID, err)
+			fmt.Printf("Error deactivating Brivo client with MINDBODY ID %d\n%s\n", event.EventData.ClientUniqueID, err)
 		}
 	default:
 		fmt.Printf("EventID %s not found\n", event.EventID)
@@ -88,7 +88,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 	)
 	// Query the user on Brivo using the MINDBODY ClientUniqueID
 	var existingUser BrivoUser
-	err := existingUser.getUserByID(event.EventData.ClientUniqueID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
+	err := existingUser.getUserByExternalID(event.EventData.ClientUniqueID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	switch e := err.(type) {
 	// User already exists: Update user
 	case nil:
@@ -220,7 +220,7 @@ func (event *Event) CreateOrUpdateUser(config Config, auth Auth) error {
 func (event *Event) DeactivateUser(config Config, auth Auth) error {
 	// Query the user data on Brivo using the MINDBODY ClientUniqueID
 	var brivoUser BrivoUser
-	if err := brivoUser.getUserByID(event.EventData.ClientUniqueID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
+	if err := brivoUser.getUserByExternalID(event.EventData.ClientUniqueID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
 		return fmt.Errorf("Brivo user %d does not exist. Error: %s", event.EventData.ClientUniqueID, err)
 	}
 	// Put Brivo user in suspended status

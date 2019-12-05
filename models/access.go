@@ -6,7 +6,6 @@ package models
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	db "github.com/christophertino/mindbody-brivo"
@@ -30,7 +29,7 @@ type Access struct {
 
 // AccessCredential holds the user credential associate with the access event
 type AccessCredential struct {
-	ID       int  `json:"id"`
+	ID       int  `json:"id"` // Brivo credential ID
 	Disabled bool `json:"disabled"`
 }
 
@@ -39,7 +38,7 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, conn redis.Conn
 	// Unwrap the AccessCredential from the event data
 	accessCredential, err := access.getAccessCredential()
 	if err != nil {
-		fmt.Printf("Error unwrapping AccessCredential\n%s", err)
+		fmt.Printf("Error unwrapping AccessCredential\n%s\n", err)
 		return
 	}
 
@@ -55,7 +54,7 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, conn redis.Conn
 	// Fetch the user Credential by Brivo ID
 	cred, err := GetCredentialByID(accessCredential.ID, config.BrivoAPIKey, auth.BrivoToken.AccessToken)
 	if err != nil {
-		fmt.Printf("Error fetching user credential\n%s", err)
+		fmt.Printf("Error fetching user credential\n%s\n", err)
 		return
 	}
 
@@ -90,18 +89,10 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, conn redis.Conn
 		utils.Logger("Refreshed Mindbody AUTH token")
 	}
 
-	// Fetch Mindbody client UniqueID from Brivo.ExternalID
-	var brivo *BrivoUser
-	if err = brivo.getUserByID(access.Actor.ID, config.BrivoAPIKey, auth.BrivoToken.AccessToken); err != nil {
-		fmt.Printf("Error fetching Brivo user %d\n%s", access.Actor.ID, err)
-		return
-	}
-	externalID, _ := strconv.Atoi(brivo.ExternalID)
-
 	// Log the user arrival in MINDBODY
-	err = AddArrival(externalID, config, auth.MindBodyToken.AccessToken)
+	err = AddArrival(cred.ReferenceID, config, auth.MindBodyToken.AccessToken)
 	if err != nil {
-		fmt.Printf("Error logging arrival to MINDBODY\n%s", err)
+		fmt.Printf("Error logging arrival to MINDBODY\n%s\n", err)
 		return
 	}
 }
@@ -120,7 +111,7 @@ func isToday(timestamp string) bool {
 	today := time.Now().UTC()
 	date, err := time.Parse("2006-01-02 15:04:05", timestamp)
 	if err != nil {
-		fmt.Printf("Error parsing timestamp \n%s", err)
+		fmt.Printf("Error parsing timestamp \n%s\n", err)
 		return false
 	}
 	return date.Day() == today.Day() && date.Month() == today.Month() && date.Year() == today.Year()

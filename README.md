@@ -54,24 +54,26 @@ Create Event Subscriptions for each of the Brivo sites you want the application 
 ```
 See [Event Subscription](https://apidocs.brivo.com/#api-Event_Subscription) documentation.
 
-### Heroku Integration
+## Local Development
 
-This application is designed to run on a basic Heroku hobby dyno. Code commits auto-deploy from `develop` to staging and `master` to production in a Heroku application pipeline.
+### Set up Redis Server
 
-Redis is required to cache client arrivals when the user scans into a Brivo access point. This allows us to only log one client arrival per day.
+```sh
+# Install Redis server
+$ brew install redis
+```
 
-+ Install the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli)
-+ Create config vars from [.env](.env) on Heroku [link](https://devcenter.heroku.com/articles/config-vars#managing-config-vars)
-+ Add Heroku Redis to the application
-    + `heroku addons:create heroku-redis:hobby-dev -app your_app_name`
-+ Share Redis instance with staging dyno
-    + `heroku addons:attach my-originating-app::REDIS --app your_staging_app_name`
-+ Get the Heroku Redis URL
-    + `heroku config -a your_app_name | grep REDIS`
-+ Connect to the Redis instance
-    + `heroku redis:cli -a your_app_name -c your_app_name`
+```sh
+# Start Redis service
+$ brew services start redis
+```
 
-### Environment Variables
+```sh
+# Connect to Redis CLI
+$ redis-cli
+```
+
+### Create Environment Variables
 
 ```
 # Brivo
@@ -105,7 +107,7 @@ PORT            [int]           Local http port for server
 ENV             [string]        development | staging | production
 ```
 
-## Running the Application
+### Configure Go Modules
 
 ```sh
 # If running inside $GOPATH
@@ -122,21 +124,45 @@ $ go mod init
 $ cp .env-example .env
 ```
 
-### Provision Brivo OnAir 
+#### Run the Brivo Migration Script
 
 ```sh
 # On first run, migrate all MINDBODY users to Brivo
 $ go run cmd/migrate/main.go
 ```
 
-### Start API Server
+#### Run the API Server
 
 ```sh
 # Run the application and listen for webhook events
 $ go run cmd/server/main.go
 ```
 
-#### Developing Locally with Heroku
+#### Clear Brivo OnAir Development Environment
+
+```sh
+# This will remove all users and credentials from Brivo
+$ go run cmd/clean/main.go
+```
+
+## Heroku Integration
+
+This application is designed to run on a basic Heroku hobby dyno. Code commits auto-deploy from `develop` to staging and `master` to production in a Heroku application pipeline.
+
+Redis is required to cache client arrivals when the user scans into a Brivo access point. This allows us to only log one client arrival per day.
+
++ Install the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli)
++ Create config vars from [.env](.env) on Heroku [link](https://devcenter.heroku.com/articles/config-vars#managing-config-vars)
++ Add Heroku Redis to the application
+    + `heroku addons:create heroku-redis:hobby-dev -app your_app_name`
++ Share Redis instance with staging dyno
+    + `heroku addons:attach my-originating-app::REDIS --app your_staging_app_name`
++ Get the Heroku Redis URL
+    + `heroku config -a your_app_name | grep REDIS`
++ Connect to the Redis instance
+    + `heroku redis:cli -a your_app_name -c your_app_name`
+
+### Developing Locally with Heroku
 
 ```sh
 # Compile the server application for Heroku
@@ -148,17 +174,10 @@ $ go build -o bin/server -v cmd/server/main.go
 $ heroku local web
 ```
 
-#### Deploying to Heroku
+### Deploying to Heroku
 ```sh
 # This isn't needed if your Heroku pipeline is configured to auto-deploy
 $ git push heroku master
-```
-
-### Clear Brivo OnAir Development Environment
-
-```sh
-# This will remove all users and credentials from Brivo
-$ go run cmd/clean/main.go
 ```
 
 ## License

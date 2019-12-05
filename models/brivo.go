@@ -264,10 +264,28 @@ func (user *BrivoUser) AssignUserGroup(groupID int, brivoAPIKey string, brivoAcc
 	return nil
 }
 
-// Retrieves a Brivo user by their UniqueID value
-func (user *BrivoUser) getUserByID(uniqueID int, brivoAPIKey string, brivoAccessToken string) error {
+// Retrieves a Brivo user by their unique Brivo ID value
+func (user *BrivoUser) getUserByID(brivoID int, brivoAPIKey string, brivoAccessToken string) error {
 	// Create HTTP request
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/users/%d/external", uniqueID), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/users/%d", brivoID), nil)
+	if err != nil {
+		return fmt.Errorf("Error creating HTTP request: %s", err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+brivoAccessToken)
+	req.Header.Add("api-key", brivoAPIKey)
+
+	if err = utils.DoRequest(req, user); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Retrieves a Brivo user by their ExternalID value
+func (user *BrivoUser) getUserByExternalID(externalID int, brivoAPIKey string, brivoAccessToken string) error {
+	// Create HTTP request
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.brivo.com/v1/api/users/%d/external", externalID), nil)
 	if err != nil {
 		return fmt.Errorf("Error creating HTTP request: %s", err)
 	}

@@ -67,7 +67,7 @@ func (auth *Auth) Authenticate(config *Config) error {
 		case err := <-errCh:
 			return err
 		case <-doneCh:
-			fmt.Println("Token fetch success!")
+			utils.Logger("Token fetch success!")
 		}
 	}
 

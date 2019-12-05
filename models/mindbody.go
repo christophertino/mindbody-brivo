@@ -42,8 +42,8 @@ type MindBodyUser struct {
 
 // Client arrival information
 type clientArrival struct {
-	ClientID   int `json:"ClientId"`
-	LocationID int `json:"LocationId"`
+	ClientID   string `json:"ClientId"`
+	LocationID int    `json:"LocationId"`
 }
 
 // GetClients builds the MINDBODY data model with client data
@@ -90,10 +90,10 @@ func (mb *MindBody) GetClients(config Config, mbAccessToken string) error {
 
 // AddArrival logs a client arrival to a location in MINDBODY. This is used
 // by Brivo event subscriptions when a user enters the facility through an access point
-func AddArrival(userID int, config *Config, mbAccessToken string) error {
+func AddArrival(barcodeID string, config *Config, mbAccessToken string) error {
 	// Build request body JSON
 	bytesMessage, err := json.Marshal(clientArrival{
-		ClientID:   userID,
+		ClientID:   barcodeID,
 		LocationID: config.MindbodyLocationID,
 	})
 	if err != nil {
@@ -114,6 +114,8 @@ func AddArrival(userID int, config *Config, mbAccessToken string) error {
 	if err = utils.DoRequest(req, &r); err != nil {
 		return err
 	}
+
+	utils.Logger(fmt.Sprintf("Added arrival for user %s", barcodeID))
 
 	return nil
 }
