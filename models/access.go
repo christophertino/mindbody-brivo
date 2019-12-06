@@ -67,9 +67,10 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, conn redis.Conn
 	// Add the request timestamp to Redis
 	today := time.Now().UTC().Format("2006-01-02 15:04:05")
 	timestamp, err := db.Get(cred.ReferenceID, conn)
-	if err == redis.ErrNil {
+	if err == redis.ErrNil || timestamp == "" {
 		// Timestamp not found in Redis. Add today's timestamp for the user
 		db.Set(cred.ReferenceID, today, conn)
+		timestamp = today
 	} else {
 		// Don't log a Mindbody arrival for the user if we have already seen them today
 		if isToday(timestamp) {

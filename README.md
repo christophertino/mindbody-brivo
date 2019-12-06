@@ -124,14 +124,16 @@ $ go mod init
 $ cp .env-example .env
 ```
 
-#### Run the Brivo Migration Script
+### Run the Application
+
+#### Brivo Migration Script
 
 ```sh
 # On first run, migrate all MINDBODY users to Brivo
 $ go run cmd/migrate/main.go
 ```
 
-#### Run the API Server
+#### Event API Server
 
 ```sh
 # Run the application and listen for webhook events
