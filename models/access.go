@@ -68,7 +68,7 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, conn redis.Conn
 	today := time.Now().UTC().Format("2006-01-02 15:04:05")
 	timestamp, err := db.Get(cred.ReferenceID, conn)
 	utils.Logger(fmt.Sprintf("Redis: Fetch for key %s returned %s", cred.ReferenceID, timestamp))
-	if err == redis.ErrNil || timestamp == "" {
+	if err == redis.ErrNil {
 		// Timestamp not found in Redis. Add today's timestamp for the user
 		db.Set(cred.ReferenceID, today, conn)
 		timestamp = today
