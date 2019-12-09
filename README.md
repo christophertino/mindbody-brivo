@@ -80,7 +80,7 @@ $ redis-cli
 brivo_username              [string]    Brivo OnAir username
 brivo_password              [string]    Brivo OnAir password
 brivo_client_id             [string]    Brivo OnAir application with password authentication type
-brivo_client_secret         [string]    Same as `brivo_client_id`
+brivo_client_secret         [string]    Brivo OnAir application with password authentication type
 brivo_api_key               [string]    Brivo developer account
 brivo_facility_code         [int]       Credential facility code for member site access
 brivo_site_id               [int]       GET site listing API
@@ -154,13 +154,11 @@ This application is designed to run on a basic Heroku hobby dyno. Code commits a
 Redis is required to cache client arrivals when the user scans into a Brivo access point. This allows us to only log one client arrival per day.
 
 + Install the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli)
-+ Create config vars from [.env](.env) on Heroku [link](https://devcenter.heroku.com/articles/config-vars#managing-config-vars)
++ Create [config vars](https://devcenter.heroku.com/articles/config-vars#managing-config-vars) from [.env](.env) on Heroku
 + Add Heroku Redis to the application
     + `heroku addons:create heroku-redis:hobby-dev -app your_app_name`
 + Share Redis instance with staging dyno
     + `heroku addons:attach my-originating-app::REDIS --app your_staging_app_name`
-+ Get the Heroku Redis URL
-    + `heroku config -a your_app_name | grep REDIS`
 + Connect to the Redis instance
     + `heroku redis:cli -a your_app_name -c your_app_name`
 

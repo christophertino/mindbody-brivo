@@ -5,14 +5,18 @@
 package mindbodybrivo
 
 import (
+	"time"
+
 	"github.com/gomodule/redigo/redis"
 )
 
 // NewPool creates a new Redis connection Pool
 func NewPool(redisURL string) *redis.Pool {
 	return &redis.Pool{
-		MaxIdle:   5,  // Maximum number of idle connections in the pool
-		MaxActive: 10, // Maximum number of connections allocated by the pool at a given time
+		MaxIdle:     5,                 // Maximum number of idle connections in the pool
+		MaxActive:   20,                // Maximum number of connections allocated by the pool at a given time
+		IdleTimeout: 240 * time.Second, // Number of seconds Redis waits before killing idle connections
+		Wait:        true,              // Wait for a connection to be returned to the pool before executing Get()
 		Dial: func() (redis.Conn, error) {
 			c, err := redis.DialURL(redisURL)
 			if err != nil {
