@@ -48,7 +48,7 @@ func Launch(config *models.Config) {
 	// Handle Brivo event subscriptions for site access
 	router.HandleFunc("/api/v1/access", func(rw http.ResponseWriter, req *http.Request) {
 		accessHandler(rw, req, config)
-		utils.Logger(fmt.Sprintf("Redis pool has %d active and %d idle connections", pool.ActiveCount(), pool.IdleCount()))
+		utils.Logger(fmt.Sprintf("Redis: Pool has %d active and %d idle connections", pool.ActiveCount(), pool.IdleCount()))
 	}).Methods(http.MethodPost)
 
 	// Used by MINDBODY to confirm webhook URL is valid
