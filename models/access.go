@@ -75,7 +75,7 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, conn redis.Conn
 		timestamp = today
 		utils.Logger(fmt.Sprintf("Redis: Creating new key %s with timestamp %s", cred.ReferenceID, timestamp))
 	} else if err != nil {
-		fmt.Printf("io.EOF: %v, type: %T", err == io.EOF, err)
+		fmt.Printf("io.EOF: %v, type: %T, error: %+v\n", err == io.EOF, err, err)
 		utils.Logger(fmt.Sprintf("Redis: Fetch for key %s returned error %s", cred.ReferenceID, err))
 		return
 	} else {

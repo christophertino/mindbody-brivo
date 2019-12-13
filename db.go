@@ -31,7 +31,7 @@ func NewPool(redisURL string) *redis.Pool {
 func Get(key string, c redis.Conn) (string, error) {
 	value, err := redis.String(c.Do("GET", key))
 	if err != nil {
-		fmt.Println(c.Err())
+		fmt.Println("Get error:", c.Err())
 		return "", err
 	}
 	return value, nil
