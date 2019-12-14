@@ -43,6 +43,12 @@ var mu sync.Mutex
 
 // ProcessEvent handles cases for each webhook EventID
 func (event *Event) ProcessEvent(errChan chan *Event, isRefreshing bool, config *Config, auth *Auth) {
+	// Validate that the ClientID has the correct facility access
+	if !IsValidID(config.BrivoFacilityCode, event.EventData.ClientID) {
+		utils.Logger(fmt.Sprintf("User %s does not have a valid ID", event.EventData.ClientID))
+		return
+	}
+
 	// Route event to correct action
 	switch event.EventID {
 	case "client.created":

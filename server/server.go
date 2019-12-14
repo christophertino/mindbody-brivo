@@ -25,7 +25,7 @@ import (
 
 var (
 	auth         models.Auth
-	conn         redis.Conn
+	pool         *redis.Pool
 	isRefreshing bool
 	errChan      chan *models.Event
 )
@@ -34,10 +34,8 @@ var (
 func Launch(config *models.Config) {
 	router := mux.NewRouter()
 
-	// Establish Redis connection
-	pool := db.NewPool(config.RedisURL)
-	conn = pool.Get()
-	defer conn.Close()
+	// Create new Redis connection pool
+	pool = db.NewPool(config.RedisURL)
 
 	// Handle MINDBODY webhook events for client updates
 	router.HandleFunc("/api/v1/user", func(rw http.ResponseWriter, req *http.Request) {
@@ -48,7 +46,6 @@ func Launch(config *models.Config) {
 	// Handle Brivo event subscriptions for site access
 	router.HandleFunc("/api/v1/access", func(rw http.ResponseWriter, req *http.Request) {
 		accessHandler(rw, req, config)
-		utils.Logger(fmt.Sprintf("Redis: Pool has %d active and %d idle connections", pool.ActiveCount(), pool.IdleCount()))
 	}).Methods(http.MethodPost)
 
 	// Used by MINDBODY to confirm webhook URL is valid
@@ -111,12 +108,6 @@ func userHandler(rw http.ResponseWriter, req *http.Request, config *models.Confi
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusAccepted)
 
-	// Validate that the ClientID has the correct facility access
-	if !models.IsValidID(config.BrivoFacilityCode, event.EventData.ClientID) {
-		utils.Logger(fmt.Sprintf("User %s does not have a valid ID", event.EventData.ClientID))
-		return
-	}
-
 	// Debug webhook payload
 	utils.Logger(fmt.Sprintf("EventData payload:\n%+v", event.EventData))
 
@@ -156,7 +147,7 @@ func accessHandler(rw http.ResponseWriter, req *http.Request, config *models.Con
 	utils.Logger(fmt.Sprintf("Access data payload:\n%+v", access))
 
 	// Process the access request
-	access.ProcessRequest(config, &auth, conn)
+	access.ProcessRequest(config, &auth, pool)
 }
 
 // Check for X-Mindbody-Signature header and validate against encoded request body

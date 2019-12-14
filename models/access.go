@@ -6,7 +6,6 @@ package models
 
 import (
 	"fmt"
-	"io"
 	"time"
 
 	db "github.com/christophertino/mindbody-brivo"
@@ -35,7 +34,11 @@ type AccessCredential struct {
 }
 
 // ProcessRequest takes a Brivo access requests and logs a client arrival in Mindbody
-func (access *Access) ProcessRequest(config *Config, auth *Auth, conn redis.Conn) {
+func (access *Access) ProcessRequest(config *Config, auth *Auth, pool *redis.Pool) {
+	// Get a connection from the Redis pool and close it when the handler is done
+	conn := pool.Get()
+	defer conn.Close()
+
 	// Unwrap the AccessCredential from the event data
 	accessCredential, err := access.getAccessCredential()
 	if err != nil {
@@ -75,7 +78,6 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, conn redis.Conn
 		timestamp = today
 		utils.Logger(fmt.Sprintf("Redis: Creating new key %s with timestamp %s", cred.ReferenceID, timestamp))
 	} else if err != nil {
-		fmt.Printf("io.EOF: %v, type: %T, error: %+v\n", err == io.EOF, err, err)
 		utils.Logger(fmt.Sprintf("Redis: Fetch for key %s returned error %s", cred.ReferenceID, err))
 		return
 	} else {
