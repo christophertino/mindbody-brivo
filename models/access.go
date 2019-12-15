@@ -111,7 +111,8 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, pool *redis.Poo
 // Unwraps the AccessCredential from the Access event
 func (access *Access) getAccessCredential() (*AccessCredential, error) {
 	creds := access.EventData.Credentials
-	if len(creds) > 0 {
+	// Filter out empty AccessCredential objects and instances where the Credential ID is 0
+	if len(creds) > 0 && creds[0].ID != 0 {
 		return &creds[0], nil
 	}
 	return &AccessCredential{}, fmt.Errorf("Access credential not found")

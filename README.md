@@ -158,7 +158,7 @@ Redis is required to cache client arrivals when the user scans into a Brivo acce
 + Add Heroku Redis to the application
     + `heroku addons:create heroku-redis:hobby-dev -app your_app_name`
 + Share Redis instance with staging dyno
-    + `heroku addons:attach my-originating-app::REDIS --app your_staging_app_name`
+    + `heroku addons:attach your_app_name::REDIS --app your_staging_app_name`
 + Connect to the Redis instance
     + `heroku redis:cli -a your_app_name -c your_app_name`
 
