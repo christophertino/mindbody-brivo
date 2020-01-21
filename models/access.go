@@ -42,7 +42,7 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, pool *redis.Poo
 	// Unwrap the AccessCredential from the event data
 	accessCredential, err := access.getAccessCredential()
 	if err != nil {
-		fmt.Printf("Error unwrapping AccessCredential\n%s\n", err)
+		fmt.Printf("Error unwrapping AccessCredential: %s\n", err)
 		return
 	}
 
