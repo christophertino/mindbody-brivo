@@ -142,7 +142,7 @@ func getCredentialByRefID(barcodeID string, brivoAPIKey string, brivoAccessToken
 
 	// The count should always be 1 or 0
 	if creds.Count > 0 {
-		fmt.Printf("Successfully fetched Credential ID %d for Reference ID %s\n", creds.Data[0].ID, barcodeID)
+		utils.Logger(fmt.Sprintf("Successfully fetched Credential ID %d for Reference ID %s\n", creds.Data[0].ID, barcodeID))
 		return creds.Data[0], nil
 	}
 
@@ -165,7 +165,7 @@ func GetCredentialByID(credentialID int, brivoAPIKey string, brivoAccessToken st
 		return Credential{}, err
 	}
 
-	fmt.Printf("Successfully fetched Credential ID %d\n", credentialID)
+	utils.Logger(fmt.Sprintf("Successfully fetched Credential ID %d\n", credentialID))
 	return cred, nil
 }
 
