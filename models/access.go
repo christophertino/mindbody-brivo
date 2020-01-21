@@ -103,7 +103,7 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, pool *redis.Poo
 	// Log the user arrival in MINDBODY
 	err = AddArrival(cred.ReferenceID, config, auth.MindBodyToken.AccessToken)
 	if err != nil {
-		fmt.Printf("Error logging arrival to MINDBODY\n%s\n", err)
+		fmt.Printf("Error logging arrival to MINDBODY for user %s\n%s", cred.ReferenceID, err)
 		return
 	}
 }
