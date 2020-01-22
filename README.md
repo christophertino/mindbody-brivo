@@ -13,7 +13,7 @@ Coordinate membership data and access control between MINDBODY and Brivo OnAir. 
 The application supports access control in two scenarios:
 
 1. MINDBODY On-Site Check-In: A user scans his/her wristband at the facility counter using a MINDBODY reader. This triggers a MINDBODY webhook which updates Brivo with new membership data, if necessary.
-2. Brivo External Access Points: A user scans his/her wristband to enter the facility via a Brivo access point (locked door, parking garage, etc). This triggers a Brivo Event which updates MINDBODY of the client arrival. Client arrivals are cached and only updated once per day.
+2. Brivo External Access Points: A user scans his/her wristband to enter the facility via a Brivo access point (locked door, parking garage, etc). This triggers a Brivo Event which updates MINDBODY of the client arrival. Client arrivals are cached and only updated once every 30min.
 
 ## Provisioning Environments 
 

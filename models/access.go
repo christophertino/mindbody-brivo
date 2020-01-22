@@ -69,25 +69,25 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, pool *redis.Poo
 	}
 
 	// Add the request timestamp to Redis
-	today := time.Now().UTC().Format("2006-01-02 15:04:05")
+	now := time.Now().UTC().Format("2006-01-02 15:04:05")
 	timestamp, err := db.Get(cred.ReferenceID, conn)
 	utils.Logger(fmt.Sprintf("Redis: Fetch for key %s returned %s", cred.ReferenceID, timestamp))
 	if err == redis.ErrNil {
-		// Timestamp not found in Redis. Add today's timestamp for the user
-		db.Set(cred.ReferenceID, today, conn)
-		timestamp = today
+		// Timestamp not found in Redis. Add current timestamp for the user
+		db.Set(cred.ReferenceID, now, conn)
+		timestamp = now
 		utils.Logger(fmt.Sprintf("Redis: Creating new key %s with timestamp %s", cred.ReferenceID, timestamp))
 	} else if err != nil {
 		utils.Logger(fmt.Sprintf("Redis: Fetch for key %s returned error %s", cred.ReferenceID, err))
 		return
 	} else {
-		// Don't log a Mindbody arrival for the user if we have already seen them today
-		if isToday(timestamp) {
-			utils.Logger(fmt.Sprintf("Redis: User %s already has an active Mindbody arrival tiemstamp for today", cred.ReferenceID))
+		// Don't log a Mindbody arrival for the user if we have seen them within the last 30min
+		if isActiveTimestamp(timestamp) {
+			utils.Logger(fmt.Sprintf("Redis: User %s already has an active Mindbody arrival tiemstamp", cred.ReferenceID))
 			return
 		}
-		// The user has an older arrival timestamp from a previous day. Update to today's date
-		db.Set(cred.ReferenceID, today, conn)
+		// The user has an older arrival timestamp from a previous time. Update to current timestamp
+		db.Set(cred.ReferenceID, now, conn)
 		utils.Logger(fmt.Sprintf("Redis: Setting timestamp for existing key %s to %s", cred.ReferenceID, timestamp))
 	}
 
@@ -118,7 +118,23 @@ func (access *Access) getAccessCredential() (*AccessCredential, error) {
 	return &AccessCredential{}, fmt.Errorf("Access credential not found")
 }
 
+// Checks to see if the timestamp is active within the past 30min
+func isActiveTimestamp(timestamp string) bool {
+	now := time.Now().UTC()
+	lastVisit, err := time.Parse("2006-01-02 15:04:05", timestamp)
+	if err != nil {
+		fmt.Printf("Error parsing timestamp \n%s\n", err)
+		return false
+	}
+	// Has 30min passed since the last visit?
+	if now.After(lastVisit.Add(time.Minute * 30)) {
+		return true
+	}
+	return false
+}
+
 // Checks to see if the timestamp matches the day, month and year of the current date
+// @deprecated
 func isToday(timestamp string) bool {
 	today := time.Now().UTC()
 	date, err := time.Parse("2006-01-02 15:04:05", timestamp)
