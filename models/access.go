@@ -83,7 +83,7 @@ func (access *Access) ProcessRequest(config *Config, auth *Auth, pool *redis.Poo
 	} else {
 		// Don't log a Mindbody arrival for the user if we have seen them within the last 30min
 		if isActiveTimestamp(timestamp) {
-			utils.Logger(fmt.Sprintf("Redis: User %s already has an active Mindbody arrival tiemstamp", cred.ReferenceID))
+			utils.Logger(fmt.Sprintf("Redis: User %s already has an active Mindbody arrival timestamp", cred.ReferenceID))
 			return
 		}
 		// The user has an older arrival timestamp from a previous time. Update to current timestamp
@@ -119,6 +119,7 @@ func (access *Access) getAccessCredential() (*AccessCredential, error) {
 }
 
 // Checks to see if the timestamp is active within the past 30min
+// @TODO: Make the timeout value an ENV property
 func isActiveTimestamp(timestamp string) bool {
 	now := time.Now().UTC()
 	lastVisit, err := time.Parse("2006-01-02 15:04:05", timestamp)
@@ -127,7 +128,7 @@ func isActiveTimestamp(timestamp string) bool {
 		return false
 	}
 	// Has 30min passed since the last visit?
-	if now.After(lastVisit.Add(time.Minute * 30)) {
+	if now.Before(lastVisit.Add(time.Minute * 30)) {
 		return true
 	}
 	return false
