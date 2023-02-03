@@ -2,8 +2,6 @@
 //
 // This application listens for webhook events from MINDBODY
 // and makes corresponding changes in Brivo
-//
-// Copyright 2019 Christopher Tino. All rights reserved.
 
 package main
 

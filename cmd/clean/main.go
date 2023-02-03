@@ -2,8 +2,6 @@
 //
 // Use this application to clear all existing users
 // and credentials from your Brivo account.
-//
-// Copyright 2019 Christopher Tino. All rights reserved.
 
 package main
 

@@ -1,6 +1,4 @@
 // Redis DB Connection Utility
-//
-// Copyright 2019 Christopher Tino. All rights reserved.
 
 package mindbodybrivo
 

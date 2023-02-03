@@ -2,8 +2,6 @@
 
 // Use this application to provision a new Brivo setup by
 // bulk-migrating all active MINDBODY users.
-//
-// Copyright 2019 Christopher Tino. All rights reserved.
 
 package main
 

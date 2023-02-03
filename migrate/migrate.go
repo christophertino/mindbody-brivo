@@ -1,6 +1,4 @@
 // Migrate all MINDBODY clients to Brivo as new users
-//
-// Copyright 2019 Christopher Tino. All rights reserved.
 
 package migrate
 

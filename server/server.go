@@ -1,6 +1,4 @@
 // Launch application API to consume MINDBODY webhooks
-//
-// Copyright 2019 Christopher Tino. All rights reserved.
 
 package server
 
@@ -57,7 +55,7 @@ func Launch(config *models.Config) {
 
 	// Set default handler
 	router.HandleFunc("/", func(rw http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(rw, "FIAO Brooklyn API")
+		fmt.Fprintf(rw, "Mindbody-Brivo API")
 	})
 
 	server := negroni.New()

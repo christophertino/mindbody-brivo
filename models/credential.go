@@ -2,8 +2,6 @@
 //
 // Make a request to `v1/api/credentials/formats` to list supported credential formats.
 // See https://apidocs.brivo.com/#api-Credential-ListCredentialFormats
-//
-// Copyright 2019 Christopher Tino. All rights reserved.
 
 package models
 
